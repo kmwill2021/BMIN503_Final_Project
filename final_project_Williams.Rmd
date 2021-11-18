@@ -285,7 +285,7 @@ nhanes2017$insurancebinary = as.numeric(nhanes2017$insurancebinary)
 nhanes2017$prescription_insurance = as.numeric(nhanes2017$prescription_insurance)
 fit_lm <- glm(data = nhanes2017, erasthma ~ race + gender + poverty + age +
                maritalstatus + education + insurancebinary + prescription_insurance, family = binomial())
-fit_lm <- glm(data = nhanes2017, erasthma ~ race, family = binomial())
+fit_lm <- glm(data = nhanes2017, erasthma ~ race +  gender + poverty + age + maritalstatus + education + insurancebinary + prescription_insurance, family = binomial())
 summary(fit_lm)
 anova(fit_lm)
 ```
