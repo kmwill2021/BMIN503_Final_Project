@@ -1,0 +1,319 @@
+---
+title: "Distinguishing some relationships of asthma in the US from 2017-March 2020"
+author: "Kelli Williams"
+output: 
+  html_document:
+    theme: paper 
+    highlight: tango
+---
+```{r set-options, echo=FALSE, cache=FALSE}
+options(width = 400)
+```  
+***
+Use this template to complete your project throughout the course. Your Final Project presentation will be based on the contents of this document. Replace the title/name above and text below with your own, but keep the headers.
+
+### Overview
+Give a brief a description of your project and its goal(s), what data you are using to complete it, and what three faculty/staff in different fields you have spoken to about your project with a brief summary of what you learned from each person. Include a link to your final project GitHub repository.
+
+
+### Introduction 
+Describe the problem addressed, its significance, and some background to motivate the problem.
+
+Explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
+
+
+### Methods
+Describe the data used and general methodological approach. Subsequently, incorporate full R code necessary to retrieve and clean data, and perform analysis. Be sure to include a description of code so that others (including your future self) can understand what you are doing and why. 
+```{r}
+#install.packages("survey")
+#install.packages("boot")
+library(haven)
+library(nhanesA) 
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+#remotes::install_github("ddsjoberg/gtsummary")
+library(gtsummary)
+#Import data file after making Stata file from SAS file
+P_MCQ <- read_dta("NHANES original data files/P_MCQ.dta")
+P_DEMO <- read_dta("NHANES original data files/P_DEMO.dta")
+P_HIQ <- read_dta("NHANES original data files/P_HIQ.dta")
+P_HUQ <- read_dta("NHANES original data files/P_HUQ.dta")
+
+#Redefine variables for MCQ_J/medical conditions
+P_MCQ2 <- P_MCQ %>%
+  dplyr::mutate(mcq010 = factor(mcq010, levels =  c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq035 = factor(mcq035, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq040 = factor(mcq040, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq050 = factor(mcq050, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160b = factor(mcq160b, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160c = factor(mcq160c, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160d = factor(mcq160d, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160e = factor(mcq160e, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160f = factor(mcq160f, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160m = factor(mcq160m, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160m = factor(mcq160p, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160l = factor(mcq160l, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq500 = factor(mcq500, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq220 = factor(mcq220, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371a = factor(mcq371a, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371b = factor(mcq371b, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371c = factor(mcq371c, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371d = factor(mcq371d, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::rename(id = seqn, everasthma = mcq010, asthma = mcq035, 
+                asthmaattack = mcq040, erasthma = mcq050, 
+                chf =  mcq160b, chd = mcq160c, angina = mcq160d, 
+                mi = mcq160e,stroke = mcq160f, everthyroid = mcq160m, 
+                thyroid = mcq170m, lungdx = mcq160p, everliver = mcq160l, liver = mcq170l, 
+                cancer = mcq220, losingweight = mcq371a, exercise = mcq371b, 
+                reducesalt = mcq371c, reducefat = mcq371d) %>%
+  dplyr::select(id, everasthma, asthma, asthmaattack, erasthma, 
+                chf, chd, angina, mi, stroke, everthyroid, thyroid, lungdx, 
+                everliver, liver, cancer, losingweight, exercise, reducesalt,
+                reducefat)
+
+#Redefine variables for P_DEMO/demographics
+P_DEMO2 <- P_DEMO %>%
+  dplyr::mutate(riagendr = factor(riagendr, 
+                                  levels =  c(1, 2), labels =c("Male", "Female"))) %>%
+  dplyr::mutate(ridreth3 = factor(ridreth3, 
+                                  levels = c(1, 2, 3, 4, 5, 7), 
+                                  labels = c("Mexican American", "Other Hispanic",
+                                             "Non-Hispanic White", "Non-Hispanic Black",
+                                             "Non-Hispanic Asian", 
+                                             "Other Race- Including Multiracial"))) %>%
+  dplyr::mutate(dmdeduc2 = factor(dmdeduc2, 
+                                  levels = c(1, 2, 3, 4, 5), 
+                                  labels = c("< 9th grade", "9th-11th grade",
+                                             "High school graduate/GED", 
+                                             "Some college or AA degree", 
+                                             "College graduate or above"))) %>%
+  dplyr::mutate(dmdmartz = factor(dmdmartz, 
+                                  levels = c(1, 2, 3), 
+                                  labels =c("Married/Living with Partner",
+                                            "Widowed/Divorced/Separated", 
+                                            "Single"))) %>%
+  dplyr::rename(id = seqn, gender = riagendr, age = ridageyr, 
+           race = ridreth3, education = dmdeduc2,
+           maritalstatus = dmdmartz, poverty = indfmpir) %>%
+  dplyr::select(id, gender, age, race, education, maritalstatus, poverty)
+  
+#Redefine variables for P_HIQ/health insurance
+P_HIQ2 <- P_HIQ %>%
+  dplyr::mutate(hiq011 = factor(hiq011, levels =  c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(hiq032a = factor(hiq032a, levels = c(1),
+                                 labels = c("Yes"))) %>%
+  dplyr::mutate(hiq032b = factor(hiq032b, levels = c(2),
+                                 labels = c("Yes"))) %>%
+  dplyr::mutate(hiq032c = factor(hiq032c, levels = c(3),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032d = factor(hiq032d, levels = c(4),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032e = factor(hiq032e, levels = c(5),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032h = factor(hiq032h, levels = c(8),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032i = factor(hiq032i, levels = c(9),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq260 = factor(hiq260, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(hiq270 = factor(hiq270, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(hiq210 = factor(hiq210, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::rename(id = seqn, insurancebinary = hiq011, privateinsurance = hiq032a, 
+           medicare = hiq032b, medigap = hiq032c, medicaid = hiq032d, 
+           chip = hiq032e, statesponsored = hiq032h, othergovernment = hiq032i, 
+           havemedicare = hiq260, prescription_insurance = hiq270,
+           noinsuranceyear = hiq210) %>%
+  dplyr::select(id, insurancebinary, privateinsurance, medicare,
+                medigap, medicaid, chip, statesponsored, othergovernment,
+                havemedicare, prescription_insurance, noinsuranceyear)
+
+#Redefine variables for P_HUQ/Hospital Utilization & Access to Care
+#should I use HUD062 or just HUQ062????????
+P_HUQ2 <- P_HUQ %>%
+  dplyr::mutate(hud062 = factor(hud062, levels =  c(1, 2, 3, 4),
+                                labels =c("anytime less than 12 months ago",
+                                          "1 year but less than 2 years ago",
+                                          "within 3 years but less than 5 years",
+                                          "within 5 years but less than 10 years"))) %>%
+  dplyr::mutate(huq010 = factor(huq010, levels = c(1, 2, 3, 4, 5), 
+                                labels = c("Excellent", "Very good", "Good",
+                                           "Fair", "Poor"))) %>%
+  dplyr::mutate(huq030 = factor(huq030, levels = c(1, 2, 3),
+                                labels = c("Yes", "There is no place",
+                                           "There is more than one place"))) %>%
+  dplyr::mutate(huq051 = factor(huq051, levels = c(0, 1, 2, 3, 4, 5, 6, 7, 8),
+                                labels =c("None", "1", "2 to 3", "4 to 5",
+                                          "6 to 7", "8 to 9", "10 to 12",
+                                          "13 to 15", "16 or more"))) %>%
+  dplyr::mutate(huq071 = factor(huq071, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(huq090 = factor(huq090, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::rename(id = seqn, combinationdoctor = hud062, healthcondition = huq010, 
+           routinehealthcare = huq030, numberhealthcare = huq051, 
+           overnighthospital = huq071, mentalhealthvisit = huq090) %>%
+  dplyr::select(id, combinationdoctor, healthcondition, routinehealthcare,
+                numberhealthcare, overnighthospital, mentalhealthvisit)
+
+#Link datasets by SEQN/ID
+nhanes2017 <- Reduce(function(x, y) merge (x = x, y = y, all = TRUE, by = "id"), 
+                     list(P_MCQ2, P_DEMO2, P_HIQ2, P_HUQ2))
+#na.omit(nhanes2017)
+```
+
+```{r}
+#How many NA's for each variable?
+sapply(nhanes2017, function(x) sum(is.na(x)))
+
+#View of some variables
+head(nhanes2017)
+count_unique <- rapply(nhanes2017,function(x) length(unique(x)))
+#There are 15,560 subjects in dataset
+table(nhanes2017$gender) #males = 7721 & females = 7839
+#table(nhanes2017$huq062) # "Combination of HUQ061 and HUQ062"
+table(nhanes2017$everasthma) #number of "ever been told you have asthma" = 2322
+table(nhanes2017$asthmaattack) #number of "Had asthma attack in past year" = 636
+table(nhanes2017$asthma) #number of "still have asthma" = 1423
+table(nhanes2017$erasthma) #number of "ER visit for asthma/past yr" = 295
+summary(nhanes2017$age) #ages
+
+#Table 1: Descriptive table: https://cran.r-project.org/web/packages/table1/vignettes/table1-examples.html; https://cran.r-project.org/web/packages/Gmisc/vignettes/Descriptives.html; https://www.danieldsjoberg.com/gtsummary/
+
+nhanes2017_dem <- nhanes2017 %>%
+  select(asthma, everasthma, asthmaattack, gender, age, race, education,
+         maritalstatus, poverty, insurancebinary, privateinsurance, medicare,
+         medigap, medicaid, chip, statesponsored, othergovernment, havemedicare,
+         prescription_insurance, noinsuranceyear)
+table1 <- tbl_summary(nhanes2017_dem)
+nhanes2017_dem$asthma <- forcats::fct_explicit_na(nhanes2017_dem$asthma)
+table2 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
+  add_n() %>%
+  add_p(simulate.p.value=TRUE) %>%
+  add_overall() %>%
+  add_stat_label() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
+  bold_labels
+```
+
+```{r}
+#Brief overview graphs
+  ####work on
+p1 <- ggplot2::ggplot(data = nhanes2017, aes(x = gender,
+                              fill = factor(asthma))) +
+                              geom_bar(position = "fill") + ylab("Percent")
+p2 <- ggplot2::ggplot(data = nhanes2017, aes(x = race,
+                              fill = factor(asthma))) +
+                              geom_bar(position = "fill") + ylab("Percent")
+p3 <- ggplot2::ggplot(data = nhanes2017, aes(x = poverty,
+                              y = factor(asthma)))geom_point(position = "fill")
+p4 <- ggplot2::ggplot(data = nhanes2017, aes(x = insurancebinary,
+                              fill = factor(asthma))) +
+                              geom_bar(position = "fill") + ylab("Percent")
+plot_grid(p1, p2, p3, p4, labels = "AUTO")
+```
+
+```{r}
+#####Asthma Prevalence: Ever been told you have asthma + Had asthma attack in past year
+nhanes2017_prev <- nhanes2017 %>%
+  select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
+         poverty, insurancebinary, privateinsurance, medicare, medigap, medicaid,
+         chip, statesponsored, othergovernment, havemedicare,
+         prescription_insurance, noinsuranceyear) %>%
+  filter(everasthma == "Yes") %>%
+  filter(asthmaattack == "Yes")
+nhanes2017_prev = data.frame(nhanes2017_prev)
+#Asthma Prevalence graphs: social factors
+p1a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race,
+                              fill = gender)) +
+                              geom_bar(position = "dodge") + ylab("Percent")
+p2a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race, y = poverty)) +
+                               geom_boxplot()
+p2ab <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race, y = poverty)) +
+                               geom_violin(draw_quantiles = c(0.25, 0.5, 0.75))
+p3a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = poverty)) + 
+                              geom_histogram(binwidth = 1)
+p4a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = insurancebinary,
+                              fill = factor(noinsuranceyear))) +
+                              geom_bar(position = "fill") + ylab("Percent")
+plot_grid(p1a, p2a, p2ab, p3a, p4a, labels = "AUTO")
+```
+
+```{r}
+#GLM Tests
+#gender <- drop_na(nhanes2017$gender)
+ggplot(data = nhanes2017, aes(x =erasthma, fill = gender)) +
+  geom_bar(position = "fill") 
+glm_a <- summary(glm(data = nhanes2017, erasthma ~ gender,
+                     family = binomial(link = "logit")))
+glm_b <- summary(glm(data = nhanes2017, erasthma ~ race,
+                     family = binomial(link = "logit")))
+chisq.test(table(nhanes2017$erasthma, nhanes2017$race))
+exp(coef(glm(erasthma ~ race, data = nhanes2017, family = binomial()))) 
+
+#Multivariate Linear Regression Model: Full Model for ER visits for asthma
+nhanes2017$poverty = as.numeric(nhanes2017$poverty)
+nhanes2017$age = as.numeric(nhanes2017$age)
+nhanes2017$erasthma = as.numeric(nhanes2017$erasthma)
+nhanes2017$race = as.numeric(nhanes2017$race)
+nhanes2017$maritalstatus = as.numeric(nhanes2017$maritalstatus)
+nhanes2017$education = as.numeric(nhanes2017$education)
+nhanes2017$insurancebinary = as.numeric(nhanes2017$insurancebinary)
+nhanes2017$prescription_insurance = as.numeric(nhanes2017$prescription_insurance)
+fit_lm <- glm(data = nhanes2017, erasthma ~ race + gender + poverty + age +
+               maritalstatus + education + insurancebinary + prescription_insurance, family = binomial())
+fit_lm <- glm(data = nhanes2017, erasthma ~ race, family = binomial())
+summary(fit_lm)
+anova(fit_lm)
+```
+
+```{r}
+#Multivariate Linear Regression Model: Full Model for ER visits & healthcare utilization for asthma
+nhanes2017$numberhealthcare = as.numeric(nhanes2017$numberhealthcare)
+nhanes2017$combinationdoctor = as.numeric(nhanes2017$combinationdoctor)
+nhanes2017$mentalhealthvisit = as.numeric(nhanes2017$mentalhealthvisit)
+nhanes2017$overnighthospital = as.numeric(nhanes2017$overnighthospital)
+nhanes2017$privateinsurance = as.numeric(nhanes2017$privateinsurance)
+nhanes2017$havemedicare = as.numeric(nhanes2017$havemedicare)
+nhanes2017$noinsuranceyear = as.numeric(nhanes2017$noinsuranceyear)
+
+fit_lm2 <- lm(data = nhanes2017, erasthma ~ numberhealthcare + combinationdoctor
+             + mentalhealthvisit + overnighthospital + race + gender + poverty +
+               age + maritalstatus + education + insurancebinary  +
+               privateinsurance + havemedicare + prescription_insurance
+             + noinsuranceyear)
+summary(fit_lm2)
+anova(fit_lm2)
+
+```
+
+#Demographics for Emergency care visit for asthma/past yr (mcq050 = outcome), predictors = age, sex, insurance status, race, etc.
+#outcome is categorical, predictor is categorical (sex), age = continuous
+
+
+
+### Results
+Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
