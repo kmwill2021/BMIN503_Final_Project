@@ -6,8 +6,19 @@ output:
     theme: paper 
     highlight: tango
 ---
-```{r set-options, echo=FALSE, cache=FALSE}
-options(width = 400)
+```{r eval = TRUE, message = FALSE}
+library(haven)
+library(nhanesA) 
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+#remotes::install_github("ddsjoberg/gtsummary")
+library(gtsummary)
+#devtools::install_github("sjPlot/devel")
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
 ```  
 ***
 Use this template to complete your project throughout the course. Your Final Project presentation will be based on the contents of this document. Replace the title/name above and text below with your own, but keep the headers.
@@ -23,25 +34,17 @@ Explain why your problem is interdisciplinary, what fields can contribute to its
 
 
 ### Methods
-Describe the data used and general methodological approach. Subsequently, incorporate full R code necessary to retrieve and clean data, and perform analysis. Be sure to include a description of code so that others (including your future self) can understand what you are doing and why. 
-```{r}
-#install.packages("survey")
-#install.packages("boot")
-library(haven)
-library(nhanesA) 
-library(plyr)
-library(dplyr)
-library(ggplot2)
-library(cowplot)
-#remotes::install_github("ddsjoberg/gtsummary")
-library(gtsummary)
-#Import data file after making Stata file from SAS file
+The data sets utilized in this project were obtained from NHANES 2017-March 2020, which is a survey-based database that aims to assess the health and nutritional status of adults and children in the United States. Specifically, the questionnaires used were: demographics, health insurance, hospital utilization & access to care, and medical conditions. Several analyses will be done to address the three aims.
+
+First, the raw data will be imported per NHANES questionnaire corresponding to 2017-March 2020. The raw data and codebook was downloaded from https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2017-2020.
+```{r eval = TRUE, message = FALSE}
 P_MCQ <- read_dta("NHANES original data files/P_MCQ.dta")
 P_DEMO <- read_dta("NHANES original data files/P_DEMO.dta")
 P_HIQ <- read_dta("NHANES original data files/P_HIQ.dta")
 P_HUQ <- read_dta("NHANES original data files/P_HUQ.dta")
-
-#Redefine variables for MCQ_J/medical conditions
+```
+Then, for each of the four data sets, only relevant variables will be redefined in the cleaning of the raw data by using the NHANES code book. 
+```{r eval = TRUE, message = FALSE}
 P_MCQ2 <- P_MCQ %>%
   dplyr::mutate(mcq010 = factor(mcq010, levels =  c(1, 2), 
                                 labels =c("Yes", "No"))) %>%
@@ -91,7 +94,13 @@ P_MCQ2 <- P_MCQ %>%
                 everliver, liver, cancer, losingweight, exercise, reducesalt,
                 reducefat)
 
-#Redefine variables for P_DEMO/demographics
+# Create categorical variable from numeric variable indfmpir and label as number
+# for later cleaning
+P_DEMO$category[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
+P_DEMO$category[P_DEMO$indfmpir == 1] <- "Equal to the poverty level (1)" <- 2
+P_DEMO$category[P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5] <-
+                                  "Greater than the poverty level (>1)" <- 3
+
 P_DEMO2 <- P_DEMO %>%
   dplyr::mutate(riagendr = factor(riagendr, 
                                   levels =  c(1, 2), labels =c("Male", "Female"))) %>%
@@ -112,12 +121,20 @@ P_DEMO2 <- P_DEMO %>%
                                   labels =c("Married/Living with Partner",
                                             "Widowed/Divorced/Separated", 
                                             "Single"))) %>%
+  dplyr::mutate(ridageyr = dplyr::case_when(ridageyr <= 17 ~ "0-17",
+                                            ridageyr > 17 ~ "18-80"),
+                                            ridageyr = factor(ridageyr,
+                                            levels = c("0-17","18-80"))) %>%
+  dplyr::mutate(category = factor(category, 
+                                  levels = c(1, 2, 3), 
+                                  labels =c("Below the poverty level (<1)",
+                                            "Equal to the poverty level (1)", 
+                                            "Greater than the poverty level (>1)"))) %>%
   dplyr::rename(id = seqn, gender = riagendr, age = ridageyr, 
            race = ridreth3, education = dmdeduc2,
-           maritalstatus = dmdmartz, poverty = indfmpir) %>%
-  dplyr::select(id, gender, age, race, education, maritalstatus, poverty)
-  
-#Redefine variables for P_HIQ/health insurance
+           maritalstatus = dmdmartz, ratio_poverty = category) %>%
+  dplyr::select(id, gender, age, race, education, maritalstatus, ratio_poverty)
+
 P_HIQ2 <- P_HIQ %>%
   dplyr::mutate(hiq011 = factor(hiq011, levels =  c(1, 2),
                                 labels =c("Yes", "No"))) %>%
@@ -150,8 +167,6 @@ P_HIQ2 <- P_HIQ %>%
                 medigap, medicaid, chip, statesponsored, othergovernment,
                 havemedicare, prescription_insurance, noinsuranceyear)
 
-#Redefine variables for P_HUQ/Hospital Utilization & Access to Care
-#should I use HUD062 or just HUQ062????????
 P_HUQ2 <- P_HUQ %>%
   dplyr::mutate(hud062 = factor(hud062, levels =  c(1, 2, 3, 4),
                                 labels =c("anytime less than 12 months ago",
@@ -177,17 +192,134 @@ P_HUQ2 <- P_HUQ %>%
            overnighthospital = huq071, mentalhealthvisit = huq090) %>%
   dplyr::select(id, combinationdoctor, healthcondition, routinehealthcare,
                 numberhealthcare, overnighthospital, mentalhealthvisit)
-
-#Link datasets by SEQN/ID
+```
+The four data sets are then merged based on participant identifier into one data set.
+```{r eval = TRUE, message = FALSE}
 nhanes2017 <- Reduce(function(x, y) merge (x = x, y = y, all = TRUE, by = "id"), 
                      list(P_MCQ2, P_DEMO2, P_HIQ2, P_HUQ2))
-#na.omit(nhanes2017)
 ```
-
+Summary views of the combined data  set were reviewed, including Table 1.
 ```{r}
+str(nhanes2017)
 #How many NA's for each variable?
 sapply(nhanes2017, function(x) sum(is.na(x)))
 
+nhanes2017_dem <- nhanes2017 %>%
+  select(asthma, everasthma, asthmaattack, erasthma, gender, age, race, education,
+         maritalstatus, ratio_poverty, insurancebinary, privateinsurance, medicare,
+         medigap, medicaid, chip, statesponsored, othergovernment, havemedicare,
+         prescription_insurance, noinsuranceyear)
+nhanes2017_dem$asthma <- forcats::fct_explicit_na(nhanes2017_dem$asthma)
+table1 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
+  add_n() %>%
+  add_overall() %>%
+  add_stat_label() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
+  bold_labels
+```
+Asthma prevalence was defined as ever being told you have asthma and having an asthma attack in the past year. A new data frame was created for asthma prevalence, as well as to use moving forward.
+```{r eval = TRUE, message = FALSE}
+nhanes2017_prev <- nhanes2017 %>%
+  dplyr::select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
+         ratio_poverty, insurancebinary, privateinsurance, medicare, medigap, medicaid,
+         chip, statesponsored, othergovernment, havemedicare,
+         prescription_insurance, noinsuranceyear, erasthma, combinationdoctor,
+         healthcondition, routinehealthcare,numberhealthcare, overnighthospital,
+         mentalhealthvisit) %>%
+  dplyr::filter(everasthma == "Yes") %>%
+  dplyr::filter(asthmaattack == "Yes")
+nhanes2017_prev = data.frame(nhanes2017_prev)
+```
+To get an overall summary of those with asthma, Table 2 was created, as well as ####GRAPHS###
+```{r eval = TRUE, message = FALSE}
+table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
+  add_n() %>%
+  add_overall() %>%
+  add_stat_label() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_caption("**Table 1. Decriptive Characteristics by Those with Asthma**") %>%
+  bold_labels
+
+#Asthma Prevalence table & graphs: social factors
+# p1a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race,
+#                               fill = gender)) +
+#                               geom_bar(position = "dodge") + ylab("Percent")
+# p2a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race, y = ratio_poverty)) +
+#                                geom_boxplot()
+# p2ab <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race, y = ratio_poverty)) +
+#                                geom_violin(draw_quantiles = c(0.25, 0.5, 0.75))
+# p3a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = ratio_poverty)) + 
+#                               geom_histogram(binwidth = 1)
+# p4a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = insurancebinary,
+#                               fill = factor(noinsuranceyear))) +
+#                               geom_bar(position = "fill") + ylab("Percent")
+#plot_grid(p1a, p2a, p2ab, p3a, p4a, labels = "AUTO")
+```
+A multivariate linear regression model was created to look at emergency room visits in those with asthma.
+```{r eval = TRUE, message = FALSE}
+#don't work= maritalstatus + education
+#fit_glm1 <- glm(data = nhanes2017_prev, erasthma ~ race +  gender + ratio_poverty
+                + age + maritalstatus + education + insurancebinary,
+                family = binomial())
+#works
+fit_glm1 <- glm(data = nhanes2017_prev, erasthma ~ race + gender + ratio_poverty + age + insurancebinary 
+                , 
+                family = binomial())
+summary(fit_glm1)
+anova(fit_glm1)
+tab_model(fit_glm1)
+#need to fix labeling issue
+# table_glm1 <- tab_model(
+#   fit_glm1, 
+#   pred.labels = c("Intercept", "Race", "Gender (Female)", "Poverty Score", "Age", "Marital Status", "Education", "Have Insurance (No)"),
+#   dv.labels = c("multivariate linear regression model"),
+#   string.pred = "Coeffcient",
+#   string.ci = "Conf. Int (95%)",
+#   string.p = "P-Value"
+# )
+# 
+# summary(glm(data = nhanes2017_prev, erasthma ~ race + gender,
+#               family = binomial()))
+```
+A multivariate linear regression model was created to look at healthcare provider and emergency room visits in those with asthma.
+```{r eval = TRUE, message = FALSE}
+fit_glm2 <- glm(data = nhanes2017_prev, erasthma ~ numberhealthcare +
+                  mentalhealthvisit + overnighthospital + race + gender +
+                  ratio_poverty + age + maritalstatus + education + insurancebinary,
+                family = binomial())
+summary(fit_glm2)
+anova(fit_glm2)
+tab_model(fit_glm2)
+#both models side by side
+tab_model(fit_glm1, fit_glm2)
+```
+### Results
+Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
+
+In the first aim, we looked at asthma prevalence from 2017-March 2020 in the US. 
+```{r}
+
+```
+In the second aim, we looked at emergency room visits in those with asthma from 2017-March 2020 in the US.
+```{r}
+
+```
+In the third aim, we looked at healthcare provider visits and emergency room visits in those with asthma from 2017-March 2020 in the US.
+```{r}
+
+```
+
+
+
+#############################DELETE BELOW##################################################
+indfmpir < 1 ~ "Below the poverty level (<1)",
+                                            indfmpir = 1 ~ "Equal to the poverty level (1)",
+                                            indfmpir > 1 ~ "Greater than the poverty level (>1)"),
+                                            indfmpir = factor(indfmpir,
+                                            levels = c("<1","1", ">1")))
+
+GLM tables (https://cran.r-project.org/web/packages/sjPlot/vignettes/tab_model_estimates.html)
 #View of some variables
 head(nhanes2017)
 count_unique <- rapply(nhanes2017,function(x) length(unique(x)))
@@ -202,24 +334,7 @@ summary(nhanes2017$age) #ages
 
 #Table 1: Descriptive table: https://cran.r-project.org/web/packages/table1/vignettes/table1-examples.html; https://cran.r-project.org/web/packages/Gmisc/vignettes/Descriptives.html; https://www.danieldsjoberg.com/gtsummary/
 
-nhanes2017_dem <- nhanes2017 %>%
-  select(asthma, everasthma, asthmaattack, gender, age, race, education,
-         maritalstatus, poverty, insurancebinary, privateinsurance, medicare,
-         medigap, medicaid, chip, statesponsored, othergovernment, havemedicare,
-         prescription_insurance, noinsuranceyear)
-table1 <- tbl_summary(nhanes2017_dem)
-nhanes2017_dem$asthma <- forcats::fct_explicit_na(nhanes2017_dem$asthma)
-table2 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
-  add_n() %>%
-  add_p(simulate.p.value=TRUE) %>%
-  add_overall() %>%
-  add_stat_label() %>%
-  modify_header(label = "**Variable**") %>%
-  modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
-  bold_labels
-```
 
-```{r}
 #Brief overview graphs
   ####work on
 p1 <- ggplot2::ggplot(data = nhanes2017, aes(x = gender,
@@ -228,92 +343,45 @@ p1 <- ggplot2::ggplot(data = nhanes2017, aes(x = gender,
 p2 <- ggplot2::ggplot(data = nhanes2017, aes(x = race,
                               fill = factor(asthma))) +
                               geom_bar(position = "fill") + ylab("Percent")
-p3 <- ggplot2::ggplot(data = nhanes2017, aes(x = poverty,
+p3 <- ggplot2::ggplot(data = nhanes2017, aes(x = ratio_poverty,
                               y = factor(asthma)))geom_point(position = "fill")
 p4 <- ggplot2::ggplot(data = nhanes2017, aes(x = insurancebinary,
                               fill = factor(asthma))) +
                               geom_bar(position = "fill") + ylab("Percent")
 plot_grid(p1, p2, p3, p4, labels = "AUTO")
-```
 
-```{r}
-#####Asthma Prevalence: Ever been told you have asthma + Had asthma attack in past year
-nhanes2017_prev <- nhanes2017 %>%
-  select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
-         poverty, insurancebinary, privateinsurance, medicare, medigap, medicaid,
-         chip, statesponsored, othergovernment, havemedicare,
-         prescription_insurance, noinsuranceyear) %>%
-  filter(everasthma == "Yes") %>%
-  filter(asthmaattack == "Yes")
-nhanes2017_prev = data.frame(nhanes2017_prev)
-#Asthma Prevalence graphs: social factors
-p1a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race,
-                              fill = gender)) +
-                              geom_bar(position = "dodge") + ylab("Percent")
-p2a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race, y = poverty)) +
-                               geom_boxplot()
-p2ab <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race, y = poverty)) +
-                               geom_violin(draw_quantiles = c(0.25, 0.5, 0.75))
-p3a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = poverty)) + 
-                              geom_histogram(binwidth = 1)
-p4a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = insurancebinary,
-                              fill = factor(noinsuranceyear))) +
-                              geom_bar(position = "fill") + ylab("Percent")
-plot_grid(p1a, p2a, p2ab, p3a, p4a, labels = "AUTO")
-```
 
-```{r}
 #GLM Tests
 #gender <- drop_na(nhanes2017$gender)
-ggplot(data = nhanes2017, aes(x =erasthma, fill = gender)) +
-  geom_bar(position = "fill") 
-glm_a <- summary(glm(data = nhanes2017, erasthma ~ gender,
-                     family = binomial(link = "logit")))
-glm_b <- summary(glm(data = nhanes2017, erasthma ~ race,
-                     family = binomial(link = "logit")))
-chisq.test(table(nhanes2017$erasthma, nhanes2017$race))
-exp(coef(glm(erasthma ~ race, data = nhanes2017, family = binomial()))) 
+# ggplot(data = nhanes2017, aes(x =erasthma, fill = gender)) +
+#   geom_bar(position = "fill") 
+# glm_a <- summary(glm(data = nhanes2017, erasthma ~ gender,
+#                      family = binomial(link = "logit")))
+# glm_b <- summary(glm(data = nhanes2017, erasthma ~ race,
+#                      family = binomial(link = "logit")))
+# chisq.test(table(nhanes2017$erasthma, nhanes2017$race))
+# exp(coef(glm(erasthma ~ race, data = nhanes2017, family = binomial()))) 
 
-#Multivariate Linear Regression Model: Full Model for ER visits for asthma
-nhanes2017$poverty = as.numeric(nhanes2017$poverty)
-nhanes2017$age = as.numeric(nhanes2017$age)
-nhanes2017$erasthma = as.numeric(nhanes2017$erasthma)
-nhanes2017$race = as.numeric(nhanes2017$race)
-nhanes2017$maritalstatus = as.numeric(nhanes2017$maritalstatus)
-nhanes2017$education = as.numeric(nhanes2017$education)
-nhanes2017$insurancebinary = as.numeric(nhanes2017$insurancebinary)
-nhanes2017$prescription_insurance = as.numeric(nhanes2017$prescription_insurance)
-fit_lm <- glm(data = nhanes2017, erasthma ~ race + gender + poverty + age +
-               maritalstatus + education + insurancebinary + prescription_insurance, family = binomial())
-fit_lm <- glm(data = nhanes2017, erasthma ~ race +  gender + poverty + age + maritalstatus + education + insurancebinary + prescription_insurance, family = binomial())
-summary(fit_lm)
-anova(fit_lm)
-```
-
-```{r}
-#Multivariate Linear Regression Model: Full Model for ER visits & healthcare utilization for asthma
-nhanes2017$numberhealthcare = as.numeric(nhanes2017$numberhealthcare)
-nhanes2017$combinationdoctor = as.numeric(nhanes2017$combinationdoctor)
-nhanes2017$mentalhealthvisit = as.numeric(nhanes2017$mentalhealthvisit)
-nhanes2017$overnighthospital = as.numeric(nhanes2017$overnighthospital)
-nhanes2017$privateinsurance = as.numeric(nhanes2017$privateinsurance)
-nhanes2017$havemedicare = as.numeric(nhanes2017$havemedicare)
-nhanes2017$noinsuranceyear = as.numeric(nhanes2017$noinsuranceyear)
-
-fit_lm2 <- lm(data = nhanes2017, erasthma ~ numberhealthcare + combinationdoctor
-             + mentalhealthvisit + overnighthospital + race + gender + poverty +
-               age + maritalstatus + education + insurancebinary  +
-               privateinsurance + havemedicare + prescription_insurance
-             + noinsuranceyear)
-summary(fit_lm2)
-anova(fit_lm2)
-
-```
-
-#Demographics for Emergency care visit for asthma/past yr (mcq050 = outcome), predictors = age, sex, insurance status, race, etc.
-#outcome is categorical, predictor is categorical (sex), age = continuous
+# nhanes2017$poverty = as.numeric(nhanes2017$poverty)
+# nhanes2017$age = as.numeric(nhanes2017$age)
+# nhanes2017$erasthma = as.numeric(nhanes2017$erasthma)
+# nhanes2017$race = as.numeric(nhanes2017$race)
+# nhanes2017$maritalstatus = as.numeric(nhanes2017$maritalstatus)
+# nhanes2017$education = as.numeric(nhanes2017$education)
+# nhanes2017$insurancebinary = as.numeric(nhanes2017$insurancebinary)
+# nhanes2017$prescription_insurance = as.numeric(nhanes2017$prescription_insurance)
+#prescription_insurance makes it not run
+#fit_glm <- glm(data = nhanes2017_prev, erasthma ~ race + gender + poverty + age +
+               #maritalstatus + education + insurancebinary + prescription_insurance, family = binomial())
 
 
-
-### Results
-Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
+#works, need to problem solve above solution for the variables that won't run as is
+#class(nhanes2017_prev$combinationdoctor)
+#overnighthospital, privateinsurance, havemedicare noinsuranceyear,
+# nhanes2017$numberhealthcare = as.numeric(nhanes2017$numberhealthcare)
+# nhanes2017$combinationdoctor = as.numeric(nhanes2017$combinationdoctor)
+# nhanes2017$mentalhealthvisit = as.numeric(nhanes2017$mentalhealthvisit)
+# nhanes2017$overnighthospital = as.numeric(nhanes2017$overnighthospital)
+# nhanes2017$privateinsurance = as.numeric(nhanes2017$privateinsurance)
+# nhanes2017$havemedicare = as.numeric(nhanes2017$havemedicare)
+# nhanes2017$noinsuranceyear = as.numeric(nhanes2017$noinsuranceyear)
