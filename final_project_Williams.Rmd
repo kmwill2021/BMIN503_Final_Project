@@ -95,11 +95,17 @@ P_MCQ2 <- P_MCQ %>%
                 reducefat)
 
 # Create categorical variable from numeric variable indfmpir and label as number
-# for later cleaning
-P_DEMO$category[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
-P_DEMO$category[P_DEMO$indfmpir == 1] <- "Equal to the poverty level (1)" <- 2
-P_DEMO$category[P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5] <-
+# for later cleaning, same with age variable
+P_DEMO$indfmpir[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
+P_DEMO$indfmpir[P_DEMO$indfmpir == 1] <- "Equal to the poverty level (1)" <- 2
+P_DEMO$indfmpir[P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5] <-
                                   "Greater than the poverty level (>1)" <- 3
+P_DEMO$ridageyr[P_DEMO$ridageyr < 17] <- "Children (0-17 years)" <- 1
+P_DEMO$ridageyr[P_DEMO$ridageyr > 17 & P_DEMO$ridageyr <= 25] <- "Adults (17-25 years)" <- 2
+P_DEMO$ridageyr[P_DEMO$ridageyr > 25 & P_DEMO$ridageyr <= 38] <- "Adults (26-38 years)" <- 3
+P_DEMO$ridageyr[P_DEMO$ridageyr > 38 & P_DEMO$ridageyr <= 50] <- "Adults (39-50 years)" <- 4
+P_DEMO$ridageyr[P_DEMO$ridageyr > 50 & P_DEMO$ridageyr <= 65] <- "Adults (51-65 years)" <- 5
+P_DEMO$ridageyr[P_DEMO$ridageyr > 66] <- "Adults (>66 years)" <- 6
 
 P_DEMO2 <- P_DEMO %>%
   dplyr::mutate(riagendr = factor(riagendr, 
@@ -121,18 +127,22 @@ P_DEMO2 <- P_DEMO %>%
                                   labels =c("Married/Living with Partner",
                                             "Widowed/Divorced/Separated", 
                                             "Single"))) %>%
-  dplyr::mutate(ridageyr = dplyr::case_when(ridageyr <= 17 ~ "0-17",
-                                            ridageyr > 17 ~ "18-80"),
-                                            ridageyr = factor(ridageyr,
-                                            levels = c("0-17","18-80"))) %>%
-  dplyr::mutate(category = factor(category, 
+  dplyr::mutate(ridageyr = factor(ridageyr,
+                                     levels = c(1, 2, 3, 4, 5, 6),
+                                     labels = c("Children (0-17 years)",
+                                                "Adults (17-25 years)",
+                                                "Adults (26-38 years)", 
+                                                "Adults (39-50 years)", 
+                                                "Adults (51-65 years)", 
+                                                "Adults (>66 years)"))) %>%
+  dplyr::mutate(indfmpir = factor(indfmpir, 
                                   levels = c(1, 2, 3), 
                                   labels =c("Below the poverty level (<1)",
                                             "Equal to the poverty level (1)", 
                                             "Greater than the poverty level (>1)"))) %>%
   dplyr::rename(id = seqn, gender = riagendr, age = ridageyr, 
            race = ridreth3, education = dmdeduc2,
-           maritalstatus = dmdmartz, ratio_poverty = category) %>%
+           maritalstatus = dmdmartz, ratio_poverty = indfmpir) %>%
   dplyr::select(id, gender, age, race, education, maritalstatus, ratio_poverty)
 
 P_HIQ2 <- P_HIQ %>%
@@ -168,6 +178,10 @@ P_HIQ2 <- P_HIQ %>%
                 havemedicare, prescription_insurance, noinsuranceyear)
 
 P_HUQ2 <- P_HUQ %>%
+  dplyr::mutate(huq011 = factor(huq010, levels =  c(1, 2, 3, 4, 5),
+                                labels =c("Excellent", "Very good",
+                                          "Good", "Fair",
+                                          "Poor"))) %>%
   dplyr::mutate(hud062 = factor(hud062, levels =  c(1, 2, 3, 4),
                                 labels =c("anytime less than 12 months ago",
                                           "1 year but less than 2 years ago",
@@ -218,7 +232,7 @@ table1 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
   modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
   bold_labels
 ```
-Asthma prevalence was defined as ever being told you have asthma and having an asthma attack in the past year. A new data frame was created for asthma prevalence, as well as to use moving forward.
+Asthma prevalence was defined as ever being told you have asthma and having an asthma attack in the past year. A new data frame was created for asthma prevalence, as well as to use moving forward. Children was removed from age, as well as all races but Non-Hispanic White and Black due to low numbers.
 ```{r eval = TRUE, message = FALSE}
 nhanes2017_prev <- nhanes2017 %>%
   dplyr::select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
@@ -231,7 +245,7 @@ nhanes2017_prev <- nhanes2017 %>%
   dplyr::filter(asthmaattack == "Yes")
 nhanes2017_prev = data.frame(nhanes2017_prev)
 ```
-To get an overall summary of those with asthma, Table 2 was created, as well as ####GRAPHS###
+To get an overall summary of those with asthma, Table 2 was created, as well as ####GRAPHS### In addition, missingness was looked at.
 ```{r eval = TRUE, message = FALSE}
 table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
   add_n() %>%
@@ -240,7 +254,7 @@ table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
   modify_header(label = "**Variable**") %>%
   modify_caption("**Table 1. Decriptive Characteristics by Those with Asthma**") %>%
   bold_labels
-
+table(nhanes2017_prev)
 #Asthma Prevalence table & graphs: social factors
 # p1a <- ggplot2::ggplot(data = nhanes2017_prev, aes(x = race,
 #                               fill = gender)) +
@@ -256,38 +270,107 @@ table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
 #                               geom_bar(position = "fill") + ylab("Percent")
 #plot_grid(p1a, p2a, p2ab, p3a, p4a, labels = "AUTO")
 ```
+Variables considered for the multivariate linear regression were assessed for variability.
+```{r eval = TRUE, message = FALSE}
+#Assess missingness
+sapply(nhanes2017_prev, function(x) sum(is.na(x)))
+table(nhanes2017_prev_sub$combinationdoctor)
+table(nhanes2017_prev$ratio_poverty)
+table(nhanes2017_prev$race)
+table(nhanes2017_prev$gender)
+table(nhanes2017_prev$age)
+table(nhanes2017_prev$insurancebinary)
+table(nhanes2017_prev$maritalstatus)
+table(nhanes2017_prev$education)
+table(nhanes2017_prev$noinsuranceyear)
+
+boxplot(nhanes2017_prev$race, ylab = "race")
+outliers <- boxplot(nhanes2017_prev$race, plot = FALSE)$out
+boxplot(nhanes2017_prev$gender, ylab = "gender")
+boxplot(nhanes2017_prev$race, ylab = "age")
+boxplot(nhanes2017_prev$insurancebinary, ylab = "insurancebinary")
+boxplot(nhanes2017_prev$maritalstatus, ylab = "maritalstatus")
+boxplot(nhanes2017_prev$education, ylab = "education")
+print(outliers)
+nhanes2017_prev[which(nhanes2017_prev$race %in% outliers), ]
+```
+Ratio to poverty, combinationdoctor, and the children category in age was not added due to there being no/low numbers based on category.
+```{r eval = TRUE, message = FALSE}
+nhanes2017_a <- subset(nhanes2017_prev, age != "Children (0-17 years)")
+                
+nhanes2017_prev_sub <- nhanes2017_a %>%
+  dplyr::select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
+         ratio_poverty, insurancebinary, prescription_insurance, noinsuranceyear,
+         erasthma, healthcondition, routinehealthcare,numberhealthcare,
+         overnighthospital, mentalhealthvisit) %>%
+  dplyr::filter(everasthma == "Yes") %>%
+  dplyr::filter(asthmaattack == "Yes")
+nhanes2017_prev_sub = data.frame(nhanes2017_prev_sub)
+
+#Assess missingness
+sapply(nhanes2017_prev_sub, function(x) sum(is.na(x)))
+table(nhanes2017_prev_sub$combinationdoctor)
+```
+Variables considered for the multivariate linear regression were assessed for variability.
+```{r eval = TRUE, message = FALSE}
+
+table(nhanes2017_prev$ratio_poverty)
+table(nhanes2017_prev$race)
+table(nhanes2017_prev$gender)
+table(nhanes2017_prev$age)
+table(nhanes2017_prev$insurancebinary)
+table(nhanes2017_prev$maritalstatus)
+table(nhanes2017_prev$education)
+table(nhanes2017_prev$noinsuranceyear)
+
+boxplot(nhanes2017_prev$race, ylab = "race")
+outliers <- boxplot(nhanes2017_prev$race, plot = FALSE)$out
+boxplot(nhanes2017_prev$gender, ylab = "gender")
+boxplot(nhanes2017_prev$race, ylab = "age")
+boxplot(nhanes2017_prev$insurancebinary, ylab = "insurancebinary")
+boxplot(nhanes2017_prev$maritalstatus, ylab = "maritalstatus")
+boxplot(nhanes2017_prev$education, ylab = "education")
+print(outliers)
+nhanes2017_prev[which(nhanes2017_prev$race %in% outliers), ]
+```
 A multivariate linear regression model was created to look at emergency room visits in those with asthma.
 ```{r eval = TRUE, message = FALSE}
-#don't work= maritalstatus + education
-#fit_glm1 <- glm(data = nhanes2017_prev, erasthma ~ race +  gender + ratio_poverty
-                + age + maritalstatus + education + insurancebinary,
-                family = binomial())
-#works
-fit_glm1 <- glm(data = nhanes2017_prev, erasthma ~ race + gender + ratio_poverty + age + insurancebinary 
-                , 
+#Full model:
+fit_glm1 <- glm(data = nhanes2017_prev_sub, erasthma ~ race + gender
+                 + age + insurancebinary + maritalstatus + education,
                 family = binomial())
 summary(fit_glm1)
 anova(fit_glm1)
 tab_model(fit_glm1)
+glm.fit(fit_glm1)
+
+#figure out test for ratio_poverty and erasthma test
+summary(glm(data = nhanes2017_prev, erasthma ~ as.numeric(ratio_poverty) == "Greater than the poverty level (>1)",
+                family = binomial()))
+```
+Regression model table created.
+```{r eval = TRUE, message = FALSE}
 #need to fix labeling issue
-# table_glm1 <- tab_model(
-#   fit_glm1, 
-#   pred.labels = c("Intercept", "Race", "Gender (Female)", "Poverty Score", "Age", "Marital Status", "Education", "Have Insurance (No)"),
-#   dv.labels = c("multivariate linear regression model"),
-#   string.pred = "Coeffcient",
-#   string.ci = "Conf. Int (95%)",
-#   string.p = "P-Value"
-# )
+table_glm1 <- tab_model(fit_glm1,
+                        pred.labels = c("Intercept", "Race", "Gender (Female)",
+                                        "Age", "Have Insurance (No)",
+                                        "Marital Status", "Education"),
+                        dv.labels = c("multivariate linear regression model"),
+                        string.pred = "Coeffcient",
+                        string.ci = "Conf. Int (95%)",
+                         string.p = "P-Value")
+
 # 
 # summary(glm(data = nhanes2017_prev, erasthma ~ race + gender,
 #               family = binomial()))
 ```
 A multivariate linear regression model was created to look at healthcare provider and emergency room visits in those with asthma.
 ```{r eval = TRUE, message = FALSE}
-fit_glm2 <- glm(data = nhanes2017_prev, erasthma ~ numberhealthcare +
-                  mentalhealthvisit + overnighthospital + race + gender +
-                  ratio_poverty + age + maritalstatus + education + insurancebinary,
+fit_glm2 <- glm(data = nhanes2017_prev, erasthma ~ numberhealthcare + routinehealthcare
+                + overnighthospital + mentalhealthvisit + race + gender
+                + age + maritalstatus + education + insurancebinary,
                 family = binomial())
+                  
 summary(fit_glm2)
 anova(fit_glm2)
 tab_model(fit_glm2)
@@ -313,6 +396,18 @@ In the third aim, we looked at healthcare provider visits and emergency room vis
 
 
 #############################DELETE BELOW##################################################
+
+nhanes2017_prev$y_pred = predict(fit_glm1, nhanes2017_prev_sub, type="response")
+
+cor(nhanes2017_prev[,unlist(lapply(nhanes2017_prev, is.numeric))])
+cor(nhanes2017_prev, c("erasthma", "race", "gender", "ratio_poverty"cor(df[,unlist(lapply(df, is.numeric))]), "age", "insurancebinary", "maritalstatus", "education"))
+
+lapply(nhanes2017_prev[c('erasthma', 'age')], unique)
+sapply(nhanes2017_prev, function(x) sum(is.na(x)))
+dplyr::mutate(ridageyr = dplyr::case_when(ridageyr <= 17 ~ "0-17",
+                                            ridageyr > 17 ~ "18-80"),
+                                            ridageyr = factor(ridageyr,
+                                            levels = c("0-17","18-80")))
 indfmpir < 1 ~ "Below the poverty level (<1)",
                                             indfmpir = 1 ~ "Equal to the poverty level (1)",
                                             indfmpir > 1 ~ "Greater than the poverty level (>1)"),
