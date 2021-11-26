@@ -3,8 +3,16 @@ title: "Distinguishing some relationships of asthma in the US from 2017-March 20
 author: "Kelli Williams"
 output: 
   html_document:
+    toc: TRUE
+    toc_depth: 5
+    toc-float:
+      collapsed: true
+      smooth_scroll: true
+    depth: 3
     theme: paper 
     highlight: tango
+    df_print: paged
+    fig_width: 8
 ---
 
 ***
@@ -12,6 +20,8 @@ output:
 This project aims to distinguish some relationships of asthma and healthcare provider and asthma-related emergency room visits in the US from 2017-March 2020 by using data from the NHANES. The goals of this study will be attained through the aims: 1) determine asthma prevalence for 2017-March 2020, 2) determine the rate of asthma-related emergency visits and the effects of social determinants of health, and 3) determine the relationship between healthcare provider visits and asthma-related emergency room visits, and the effects of social determinants of health.
 
 The three faculty that were consulted about this project are: Mary Regina Boland, MA, MPhil, Ph.D., FAMIA, Assistant Professor of Informatics in Biostatistics and Epidemiology, Department of Biostatistics, Epidemiology & Informatics, John Holmes, PhD, FACE, FACMI, Professor of Medical Informatics in Epidemiology, Department of Biostatistics, Epidemiology & Informatics, and Blanca E. Himes, PhD, Department: Biostatistics and Epidemiology. 
+
+[Github Repository](https://github.com/kmwill2021/BMIN503_Final_Project)
 
 ### Introduction 
   Asthma is a chronic inflammatory disease affecting the respiratory system, which causes difficulty in breathing, and therefore requires ongoing medical management.  Although asthma is not curable, it is highly treatable. According to the 2016 National Health Interview Survey data, lifetime asthma prevalence was 13.9% for adults (18+ years of age), which gives the population estimate of 625,000.  Social determinants of health affect health-related outcomes. Since asthma is highly treatable, differences in outcomes could be associated with social factors, and determining which ones are the most significant in asthma can aid in mitigating the burden of asthma on individuals, families, and healthcare systems.  In this study, we will determine relationships of asthma and some social determinants of health in the United States by using the NHANES 2017- March 2020 questionnaire.
@@ -23,23 +33,12 @@ The data sets utilized in this project were obtained from NHANES 2017-March 2020
 
 All necessary packages were installed and loaded first.
 ```{r eval = TRUE, message = FALSE}
-suppressMessages(library(haven))
-suppressMessages(library(nhanesA))
-suppressMessages(library(plyr))
-suppressMessages(library(dplyr))
-suppressMessages(library(ggplot2))
-suppressMessages(library(cowplot))
+suppressMessages(library(haven)) #import STATA files
+suppressMessages(library(plyr)) #data cleaning
+suppressMessages(library(dplyr)) #data cleaning
+suppressMessages(library(ggplot2)) #plots
 #remotes::install_github("ddsjoberg/gtsummary")
-suppressMessages(library(gtsummary))
-#devtools::install_github("sjPlot/devel")
-suppressMessages(library(sjPlot))
-suppressMessages(library(sjmisc))
-suppressMessages(library(sjlabelled))
-#install.packages("pscl")
-suppressMessages(library(pscl))
-#install.packages("car")
-suppressMessages(library(car))
-suppressMessages(library(knitr))
+suppressMessages(library(gtsummary)) #regression model tables
 ```  
 The raw data will be imported per NHANES questionnaire corresponding to 2017-March 2020. The raw data and codebook was downloaded from https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2017-2020.
 ```{r eval = TRUE, message = FALSE}
