@@ -17,7 +17,7 @@ output:
 
 ***
 ### Overview
-This project aims to distinguish some relationships of asthma and healthcare provider and asthma-related emergency room visits in the US from 2017-March 2020 by using data from the NHANES. The goals of this study will be attained through the aims: 1) determine asthma prevalence for 2017-March 2020, 2) determine the rate of asthma-related emergency visits and the effects of social determinants of health, and 3) determine the relationship between healthcare provider visits and asthma-related emergency room visits, and the effects of social determinants of health.
+This project aims to distinguish some relationships of asthma and healthcare provider visits and asthma-related emergency room visits in the US from 2017-March 2020 by using data from the NHANES. The goals of this study will be attained through the aims: 1) determine asthma prevalence for 2017-March 2020, 2) determine the rate of asthma-related emergency visits and the effects of social determinants of health, and 3) determine the relationship between healthcare provider visits and asthma-related emergency room visits, and the effects of social determinants of health.
 
 The three faculty that were consulted about this project are: Mary Regina Boland, MA, MPhil, Ph.D., FAMIA, Assistant Professor of Informatics in Biostatistics and Epidemiology, Department of Biostatistics, Epidemiology & Informatics, John Holmes, PhD, FACE, FACMI, Professor of Medical Informatics in Epidemiology, Department of Biostatistics, Epidemiology & Informatics, and Blanca E. Himes, PhD, Department: Biostatistics and Epidemiology. 
 
