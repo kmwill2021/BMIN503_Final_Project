@@ -39,6 +39,9 @@ suppressMessages(library(dplyr)) #data cleaning
 suppressMessages(library(ggplot2)) #plots
 #remotes::install_github("ddsjoberg/gtsummary")
 suppressMessages(library(gtsummary)) #regression model tables
+suppressMessages(library(sjPlot)) #forest plot
+suppressMessages(library(sjlabelled)) #forest plot
+suppressMessages(library(sjmisc)) #forest plot
 ```  
 The raw data will be imported per NHANES questionnaire corresponding to 2017-March 2020. The raw data and codebook was downloaded from https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2017-2020.
 ```{r eval = TRUE, message = FALSE}
@@ -98,18 +101,18 @@ P_MCQ2 <- P_MCQ %>%
                 everliver, liver, cancer, losingweight, exercise, reducesalt,
                 reducefat)
 
-# Create categorical variable from numeric variable indfmpir and label as number 
-#for data cleaning, same with age variable
-P_DEMO$indfmpir[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
-P_DEMO$indfmpir[P_DEMO$indfmpir == 1] <- "Equal to the poverty level (1)" <- 2
-P_DEMO$indfmpir[P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5] <-
-                                  "Greater than the poverty level (>1)" <- 3
-P_DEMO$ridageyr[P_DEMO$ridageyr < 17] <- "Children (0-17 years)" <- 1
-P_DEMO$ridageyr[P_DEMO$ridageyr > 17 & P_DEMO$ridageyr <= 25] <- "Adults (17-25 years)" <- 2
-P_DEMO$ridageyr[P_DEMO$ridageyr > 25 & P_DEMO$ridageyr <= 38] <- "Adults (26-38 years)" <- 3
-P_DEMO$ridageyr[P_DEMO$ridageyr > 38 & P_DEMO$ridageyr <= 50] <- "Adults (39-50 years)" <- 4
-P_DEMO$ridageyr[P_DEMO$ridageyr > 50 & P_DEMO$ridageyr <= 65] <- "Adults (51-65 years)" <- 5
-P_DEMO$ridageyr[P_DEMO$ridageyr > 66] <- "Adults (>66 years)" <- 6
+# Establish categorical variable from numeric variable indfmpir (ratio to poverty)
+# and label as number for data cleaning, same with ridageyr (age) variable
+P_DEMO$indfmpir <- ifelse(P_DEMO$indfmpir < 0.99, "1", 
+                          ifelse(P_DEMO$indfmpir == 1, "2", 
+                          ifelse(P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5, "3", "4")))
+
+P_DEMO$ridageyr <- ifelse(P_DEMO$ridageyr < 17, "1",
+                               ifelse(P_DEMO$ridageyr > 17 & P_DEMO$ridageyr <= 25, "2",
+                               ifelse(P_DEMO$ridageyr > 25 & P_DEMO$ridageyr <= 38, "3",
+                               ifelse(P_DEMO$ridageyr > 38 & P_DEMO$ridageyr <= 50, "4",
+                               ifelse(P_DEMO$ridageyr > 50 & P_DEMO$ridageyr <= 65, "5",
+                               ifelse(P_DEMO$ridageyr >= 66, "6", "NA"))))))
 
 P_DEMO2 <- P_DEMO %>%
   dplyr::mutate(riagendr = factor(riagendr, 
@@ -117,7 +120,8 @@ P_DEMO2 <- P_DEMO %>%
   dplyr::mutate(ridreth3 = factor(ridreth3, 
                                   levels = c(1, 2, 3, 4, 5, 7), 
                                   labels = c("Mexican American", "Other Hispanic",
-                                             "Non-Hispanic White", "Non-Hispanic Black",
+                                             "Non-Hispanic White",
+                                             "Non-Hispanic Black",
                                              "Non-Hispanic Asian", 
                                              "Other Race- Including Multiracial"))) %>%
   dplyr::mutate(dmdeduc2 = factor(dmdeduc2, 
@@ -135,9 +139,9 @@ P_DEMO2 <- P_DEMO %>%
                                      levels = c(1, 2, 3, 4, 5, 6),
                                      labels = c("Children (0-17 years)",
                                                 "Adults (17-25 years)",
-                                                "Adults (26-38 years)", 
-                                                "Adults (39-50 years)", 
-                                                "Adults (51-65 years)", 
+                                                "Adults (26-38 years)",
+                                                "Adults (39-50 years)",
+                                                "Adults (51-65 years)",
                                                 "Adults (>66 years)"))) %>%
   dplyr::mutate(indfmpir = factor(indfmpir, 
                                   levels = c(1, 2, 3), 
@@ -238,6 +242,7 @@ table1 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
   modify_header(label = "**Variable**") %>%
   modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
   bold_labels
+table1
 ```
 
 ### Results
@@ -247,12 +252,13 @@ In the first aim, we looked at asthma prevalence from 2017-March 2020 in the US.
 Asthma prevalence was defined as ever being told you have asthma and having an asthma attack in the past year. A new data frame was created for asthma prevalence, as well as to use moving forward.
 ```{r eval = TRUE, message = FALSE}
 nhanes2017_prev <- nhanes2017 %>%
-  dplyr::select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
-         ratio_poverty, insurancebinary, privateinsurance, medicare, medigap, medicaid,
-         chip, statesponsored, othergovernment, havemedicare,
-         prescription_insurance, noinsuranceyear, erasthma, combinationdoctor,
-         healthcondition, routinehealthcare,numberhealthcare, overnighthospital,
-         mentalhealthvisit) %>%
+  dplyr::select(everasthma, asthmaattack, gender, age, race, education,
+                maritalstatus, ratio_poverty, insurancebinary, privateinsurance,
+                medicare, medigap, medicaid, chip, statesponsored,
+                othergovernment, havemedicare, 
+                prescription_insurance, noinsuranceyear, erasthma,
+                combinationdoctor, healthcondition, routinehealthcare, 
+                numberhealthcare, overnighthospital, mentalhealthvisit) %>%
   dplyr::filter(everasthma == "Yes") %>%
   dplyr::filter(asthmaattack == "Yes")
 nhanes2017_prev = data.frame(nhanes2017_prev)
@@ -262,9 +268,6 @@ Asthma prevalence was calculated only for this cohort. As asthma prevalence is d
 table(nhanes2017_prev$everasthma) #636 participants with asthma
 str(nhanes2017) #15560 total number of participants
 #(636/15560)*100 = 4.087404% asthma prevalence
-
-#make new category for percentages???
-#nhanes2017_prev$indfmpir[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
 ```
 To get an overall summary of the characteristics and social determinants of health in asthma prevalence, Table 2 was created.
 ```{r eval = TRUE, message = FALSE}
@@ -275,6 +278,7 @@ table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
   modify_header(label = "**Variable**") %>%
   modify_caption("**Table 2. Decriptive Characteristics for Asthma Prevalence**") %>%
   bold_labels
+table2
 ```
 Variables considered for analysis were assessed for variability and missingness.
 ```{r eval = TRUE, message = FALSE}
@@ -285,28 +289,25 @@ table(nhanes2017_prev$ratio_poverty)
 table(nhanes2017_prev$race)
 table(nhanes2017_prev$gender)
 table(nhanes2017_prev$age)
+
 table(nhanes2017_prev$insurancebinary)
 table(nhanes2017_prev$maritalstatus)
 table(nhanes2017_prev$education)
 table(nhanes2017_prev$noinsuranceyear)
 
 boxplot(nhanes2017_prev$race, ylab = "race")
-outliers <- boxplot(nhanes2017_prev$race, plot = FALSE)$out
 boxplot(nhanes2017_prev$gender, ylab = "gender")
 boxplot(nhanes2017_prev$race, ylab = "age")
-boxplot(nhanes2017_prev$insurancebinary, ylab = "insurancebinary")
 boxplot(nhanes2017_prev$maritalstatus, ylab = "maritalstatus")
 boxplot(nhanes2017_prev$education, ylab = "education")
-print(outliers)
-nhanes2017_prev[which(nhanes2017_prev$race %in% outliers), ]
 ```
-Ratio to poverty, combinationdoctor, and the children category in age was not added due to there being no/low numbers based on category, so a new data set was created to account for this. Children was removed from age due to low numbers.
+Combinationdoctor, medicare, medigap, medicaid, chip, statesponsored, othergovernment, havemedicare, and in age and ratio_poverty, a category was removed due to there being no/low numbers (too much missing data) based on category, so a new data set was created to account for this. 
 ```{r eval = TRUE, message = FALSE}
-nhanes2017_a <- subset(nhanes2017_prev, age != "Children (0-17 years)")
-                
+nhanes2017_a <- subset(nhanes2017_prev, age != "Children (0-17 years)") #remove category from variable
+nhanes2017_a <- subset(nhanes2017_prev, ratio_poverty != "Equal to the poverty level (1)") #remove category from variable
 nhanes2017_prev_sub <- nhanes2017_a %>%
   dplyr::select(everasthma, asthmaattack, gender, age, race, education,
-                maritalstatus, insurancebinary, prescription_insurance,
+                maritalstatus, ratio_poverty, insurancebinary, prescription_insurance,
                 noinsuranceyear, erasthma, healthcondition, routinehealthcare,
                 numberhealthcare, overnighthospital, mentalhealthvisit) %>%
   dplyr::filter(everasthma == "Yes") %>%
@@ -316,74 +317,121 @@ nhanes2017_prev_sub = data.frame(nhanes2017_prev_sub)
 #Assess missingness
 sapply(nhanes2017_prev_sub, function(x) sum(is.na(x)))
 ```
-Age, race, insurance status, and asthma-related ER visits distribution for asthma prevalence were plotted below.
+Age, race, gender, insurance status, number of healthcare provider visits, and asthma-related ER visits distribution for asthma prevalence were plotted below.
 ```{r eval = TRUE, message = FALSE}
-p1 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = age)) +
+p1 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = age, fill = erasthma)) +
                 geom_bar() +
-                ggtitle(paste("Asthma Patients Age Distribution")) +
-                theme(text = element_text(family = "Palatino"),
+                scale_fill_discrete(name = "ER Visit") +
+                labs(title = "Asthma Patients Age & Asthma-related ER Visits
+                              Distribution", x = "Age", y ="Count") +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
                 plot.title = element_text(hjust = 0, face="bold", size=20))
-p2 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = race)) +
-                geom_bar() +
-                labs(title = "Asthma Patients Race Distribution",
+p1              
+p2 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = race, fill = gender)) +
+                geom_bar(position = "dodge") +
+                scale_fill_discrete(name = "Gender") +
+                labs(title = "Asthma Patients Race & Gender Distribution",
                 x = "Race", y = "Count") +
                 theme(axis.text.x = element_text(angle = 45, hjust = 1),
                 plot.title = element_text(hjust = 0, face="bold", size=20)) 
-p3 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = insurancebinary)) +
+p2
+p3 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = insurancebinary,
+                fill = erasthma)) +
                 geom_bar() +
-                labs(title = "Asthma Patients Insurance Status",
-                x = "insurancebinary", y = "Count") +
+                scale_fill_discrete(name = "ER Visit") +
+                labs(title = "Asthma Patients Insurance Status & Asthma-related
+                ER Visits Distribution",
+                x = "Insured", y = "Count") +
+                theme(text = element_text(family = "Palatino"),
+                plot.title = element_text(hjust = 0, face="bold", size=20))
+p3
+p4 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = numberhealthcare,
+                fill = gender)) +
+                geom_histogram(stat = "count") +
+                scale_fill_brewer(palette="Dark2") +
+                labs(title = "Number of Healthcare Provider Visits in
+                     Asthma Patients by Gender",
+                x = "Number of Healthcare Visits in Past 12 months") +
                 theme(axis.text.x = element_text(angle = 45, hjust = 1),
                 plot.title = element_text(hjust = 0, face="bold", size=20))
-p4 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = erasthma)) +
-                geom_bar() +
-                labs(title = "Asthma-related ER Visits",
-                x = "erasthma", y = "Count") +
-                theme(axis.text.x = element_text(angle = 45, hjust = 1),
-                plot.title = element_text(hjust = 0, face="bold", size=20))
+p4
 ```
 ```
 In the second aim, we looked at asthma-related emergency room visits in those with asthma (asthma prevalence group) from 2017-March 2020 in the US by using a multivariate linear regression model was created to look at emergency room visits.
 ```{r eval = TRUE, message = FALSE}
 fit_glm1 <- glm(data = nhanes2017_prev_sub, erasthma ~ race + gender
-                 + age + insurancebinary + maritalstatus + education,
-                family = binomial())
+                 + age + insurancebinary + maritalstatus
+                 + education, family = binomial())
 summary(fit_glm1)
 anova(fit_glm1)
+coef(fit_glm1)
 ```
 Regression model table created for Aim 2. 
 ```{r eval = TRUE, message = FALSE}
-tbl_regression(fit_glm1, exponentiate = TRUE, 
-  pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_caption("Table 3. Multivariate Model: Asthma-related ER Visits")
+Table3 <- tbl_regression(fit_glm1,
+                         exponentiate = TRUE, 
+                         pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
+                         bold_p(t = 0.10) %>%
+                         bold_labels() %>%
+                         italicize_levels() %>%
+                         modify_caption("Table 3. Multivariate Model:
+                         Asthma-related ER Visits")
+ Table3 
+```
+Forest plot created for data visualization for Aim 2 regression model.
+```{r eval = TRUE, message = FALSE}
+theme_set(theme_sjplot())
+forestplot1 <- plot_model(fit_glm1,
+               vline.color = "red",
+               sort.est = TRUE,
+               show.values = TRUE,
+               value.offset = .3,
+               show.p = TRUE,
+               title = "Asthma-related ER Visits")
+forestplot1
 ```
 In the third aim, we looked at healthcare provider visits and emergency room visits in those with asthma (asthma prevalence group) from 2017-March 2020 in the US by using a multivariate linear regression model.
 ```{r eval = TRUE, message = FALSE}
-fit_glm2 <- glm(data = nhanes2017_prev, erasthma ~ numberhealthcare + routinehealthcare
-                + overnighthospital + mentalhealthvisit + race + gender
-                + age + maritalstatus + education + insurancebinary,
+fit_glm2 <- glm(data = nhanes2017_prev, erasthma ~ numberhealthcare 
+                + overnighthospital + mentalhealthvisit + race + gender + age
+                + maritalstatus + education + insurancebinary,
                 family = binomial())
                   
 summary(fit_glm2)
 anova(fit_glm2)
+coef(fit_glm2)
 ```
 Regression model table created for Aim 3.
 ```{r setup, include = FALSE} 
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
-tbl_regression(fit_glm2, exponentiate = TRUE, 
-  pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
-  bold_p(t = 0.10) %>%
-  bold_labels() %>%
-  italicize_levels() %>%
-  modify_caption("Table 4. Multivariate Model: Healthcare Provider
-  Visits and Asthma-related ER Visits")
+Table4 <- tbl_regression(fit_glm2,
+                         exponentiate = TRUE, 
+                         pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
+                         bold_p(t = 0.10) %>%
+                         bold_labels() %>%
+                         italicize_levels() %>%
+                         modify_caption("Table 4. Multivariate Model:
+                         Healthcare Provider Visits and Asthma-related
+                         ER Visits")
+Table4
+```
+Forest plot created for data visualization for Aim 3.
+```{r eval = TRUE, message = FALSE}
+theme_set(theme_sjplot())
+forestplot2 <- plot_model(fit_glm2,
+                          vline.color = "red",
+                          sort.est = TRUE,
+                          show.values = TRUE,
+                          value.offset = .4,
+                          value.size = 4,
+                          line.size = 1.5,
+                          title = "Healthcare Provider Visits and Asthma-related
+                          ER Visits")
+forestplot2
 ```
 ### Conclusions
 The point prevalence of asthma in the total cohort population from 2017-March 2020 is 4.1%. Asthma-related emergency room visits (in 12 months) is significantly associated with being Non-Hispanic Black (p-value = 0.038, 95% CI 0.12-0.91) and being a college graduate or above (p-value = 0.009, 95% CI 1.49-15.7). Healthcare provider visits and asthma-related emergency room visits (in 12 months) is significantly associated with being Non-Hispanic Black (p-value = 0.040, 95% CI 0.11-0.92), being a college graduate or above (p-value = 0.039, 95% CI 1.07-13.1), and not going to a mental health visit in 12 months (p-value = 0.006, 95% CI 1.25-3.90). There is no significant association between the number of healthcare provider visits in 12 months and asthma-related emergency room visits.
-Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such as the number of chlidren with asthma. Aditionally, since the data was collected in a cross-sectional design, comparisons of different variables was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
+Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such as the number of children with asthma and ratio to poverty. Additionally, since the data was collected in a cross-sectional design, comparisons of variables across time for the same participant was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
 
 
 ### References
