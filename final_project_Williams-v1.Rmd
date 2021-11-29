@@ -1,0 +1,392 @@
+---
+title: "Distinguishing some relationships of asthma in the US from 2017-March 2020"
+author: "Kelli Williams"
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 5
+    toc-float:
+      collapsed: true
+      smooth_scroll: true
+    depth: 3
+    theme: paper 
+    highlight: tango
+    df_print: paged
+    fig_width: 8
+---
+
+***
+### Overview
+This project aims to distinguish some relationships of asthma and healthcare provider and asthma-related emergency room visits in the US from 2017-March 2020 by using data from the NHANES. The goals of this study will be attained through the aims: 1) determine asthma prevalence for 2017-March 2020, 2) determine the rate of asthma-related emergency visits and the effects of social determinants of health, and 3) determine the relationship between healthcare provider visits and asthma-related emergency room visits, and the effects of social determinants of health.
+
+The three faculty that were consulted about this project are: Mary Regina Boland, MA, MPhil, Ph.D., FAMIA, Assistant Professor of Informatics in Biostatistics and Epidemiology, Department of Biostatistics, Epidemiology & Informatics, John Holmes, PhD, FACE, FACMI, Professor of Medical Informatics in Epidemiology, Department of Biostatistics, Epidemiology & Informatics, and Blanca E. Himes, PhD, Department: Biostatistics and Epidemiology.
+
+[Github Repository](https://github.com/kmwill2021/BMIN503_Final_Project)
+
+### Introduction 
+  Asthma is a chronic inflammatory disease affecting the respiratory system, which causes difficulty in breathing, and therefore requires ongoing medical management. Although asthma is not curable, it is highly treatable. According to the 2016 National Health Interview Survey data, lifetime asthma prevalence was 13.9% for adults (18+ years of age), which gives the population estimate of 625,000. Social determinants of health affect health-related outcomes. Since asthma is highly treatable, differences in outcomes could be associated with social factors, and determining which ones are the most significant in asthma can aid in mitigating the burden of asthma on individuals, families, and healthcare systems. In this study, we will determine relationships of asthma and some social determinants of health in the United States by using the NHANES 2017- March 2020 questionnaire. 
+  A multidisciplinary approach is necessary to address any association between asthma and social determinants of health. To treat asthma patients, medical providers will need this valuable information in assessing care, which will involve the fields of social work, psychology, scientific researchers such as environmentalist, etc. In addition, the business community is necessary to determine necessary risk-reward models such as the cost of loss of work vs. better work environments, or hospital healthcare costs per emergency room visit vs. community clinics. In determining any relationships between asthma and some social determinants of health, the expansion of the number of questionnaires being used for analysis must include at minimum topics about basic demographics, hospital utilization, access to care, medical conditions (as discussed with advisers). 
+  Dr. Holmes introduced other data sets should NHANES not work, as well as the scope of questionnaires to include. Dr. Boland introduced layering aims to get the data exploration outcomes necessary for the aims. Dr. Himes aided in coding and formatting in R, as well as general asthma research, in order frame asthma research appropriately.After input from faculty, the source of data and study aims were solidified.
+
+### Methods
+The data sets utilized in this project were obtained from NHANES 2017-March 2020, which is a survey-based database that aims to assess the health and nutritional status of adults and children in the United States. Specifically, the questionnaires used were: demographics, health insurance, hospital utilization & access to care, and medical conditions. Several analyses will be done to address the three aims.
+
+All necessary packages were installed and loaded first.
+```{r eval = TRUE, message = FALSE}
+suppressMessages(library(haven)) #import STATA files
+suppressMessages(library(plyr)) #data cleaning
+suppressMessages(library(dplyr)) #data cleaning
+suppressMessages(library(ggplot2)) #plots
+#remotes::install_github("ddsjoberg/gtsummary")
+suppressMessages(library(gtsummary)) #regression model tables
+```  
+The raw data will be imported per NHANES questionnaire corresponding to 2017-March 2020. The raw data and codebook was downloaded from https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2017-2020.
+```{r eval = TRUE, message = FALSE}
+P_MCQ <- read_dta("NHANES original data files/P_MCQ.dta")
+P_DEMO <- read_dta("NHANES original data files/P_DEMO.dta")
+P_HIQ <- read_dta("NHANES original data files/P_HIQ.dta")
+P_HUQ <- read_dta("NHANES original data files/P_HUQ.dta")
+```
+Then, for each of the four data sets, only potentially relevant variables will be redefined in the cleaning of the raw data by using the NHANES code book. 
+```{r eval = TRUE, message = FALSE}
+P_MCQ2 <- P_MCQ %>%
+  dplyr::mutate(mcq010 = factor(mcq010, levels =  c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq035 = factor(mcq035, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq040 = factor(mcq040, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq050 = factor(mcq050, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160b = factor(mcq160b, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160c = factor(mcq160c, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160d = factor(mcq160d, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160e = factor(mcq160e, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160f = factor(mcq160f, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160m = factor(mcq160m, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160m = factor(mcq160p, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq160l = factor(mcq160l, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq500 = factor(mcq500, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq220 = factor(mcq220, levels = c(1, 2), 
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371a = factor(mcq371a, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371b = factor(mcq371b, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371c = factor(mcq371c, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::mutate(mcq371d = factor(mcq371d, levels = c(1, 2), 
+                                 labels =c("Yes", "No"))) %>%
+  dplyr::rename(id = seqn, everasthma = mcq010, asthma = mcq035, 
+                asthmaattack = mcq040, erasthma = mcq050, 
+                chf =  mcq160b, chd = mcq160c, angina = mcq160d, 
+                mi = mcq160e,stroke = mcq160f, everthyroid = mcq160m, 
+                thyroid = mcq170m, lungdx = mcq160p, everliver = mcq160l,
+                liver = mcq170l, cancer = mcq220, losingweight = mcq371a,
+                exercise = mcq371b, reducesalt = mcq371c, reducefat = mcq371d) %>%
+  dplyr::select(id, everasthma, asthma, asthmaattack, erasthma, 
+                chf, chd, angina, mi, stroke, everthyroid, thyroid, lungdx, 
+                everliver, liver, cancer, losingweight, exercise, reducesalt,
+                reducefat)
+
+# Create categorical variable from numeric variable indfmpir and label as number 
+#for data cleaning, same with age variable
+P_DEMO$indfmpir[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
+P_DEMO$indfmpir[P_DEMO$indfmpir == 1] <- "Equal to the poverty level (1)" <- 2
+P_DEMO$indfmpir[P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5] <-
+                                  "Greater than the poverty level (>1)" <- 3
+P_DEMO$ridageyr[P_DEMO$ridageyr < 17] <- "Children (0-17 years)" <- 1
+P_DEMO$ridageyr[P_DEMO$ridageyr > 17 & P_DEMO$ridageyr <= 25] <- "Adults (17-25 years)" <- 2
+P_DEMO$ridageyr[P_DEMO$ridageyr > 25 & P_DEMO$ridageyr <= 38] <- "Adults (26-38 years)" <- 3
+P_DEMO$ridageyr[P_DEMO$ridageyr > 38 & P_DEMO$ridageyr <= 50] <- "Adults (39-50 years)" <- 4
+P_DEMO$ridageyr[P_DEMO$ridageyr > 50 & P_DEMO$ridageyr <= 65] <- "Adults (51-65 years)" <- 5
+P_DEMO$ridageyr[P_DEMO$ridageyr > 66] <- "Adults (>66 years)" <- 6
+
+P_DEMO2 <- P_DEMO %>%
+  dplyr::mutate(riagendr = factor(riagendr, 
+                                  levels =  c(1, 2), labels =c("Male", "Female"))) %>%
+  dplyr::mutate(ridreth3 = factor(ridreth3, 
+                                  levels = c(1, 2, 3, 4, 5, 7), 
+                                  labels = c("Mexican American", "Other Hispanic",
+                                             "Non-Hispanic White", "Non-Hispanic Black",
+                                             "Non-Hispanic Asian", 
+                                             "Other Race- Including Multiracial"))) %>%
+  dplyr::mutate(dmdeduc2 = factor(dmdeduc2, 
+                                  levels = c(1, 2, 3, 4, 5), 
+                                  labels = c("< 9th grade", "9th-11th grade",
+                                             "High school graduate/GED", 
+                                             "Some college or AA degree", 
+                                             "College graduate or above"))) %>%
+  dplyr::mutate(dmdmartz = factor(dmdmartz, 
+                                  levels = c(1, 2, 3), 
+                                  labels =c("Married/Living with Partner",
+                                            "Widowed/Divorced/Separated", 
+                                            "Single"))) %>%
+  dplyr::mutate(ridageyr = factor(ridageyr,
+                                     levels = c(1, 2, 3, 4, 5, 6),
+                                     labels = c("Children (0-17 years)",
+                                                "Adults (17-25 years)",
+                                                "Adults (26-38 years)", 
+                                                "Adults (39-50 years)", 
+                                                "Adults (51-65 years)", 
+                                                "Adults (>66 years)"))) %>%
+  dplyr::mutate(indfmpir = factor(indfmpir, 
+                                  levels = c(1, 2, 3), 
+                                  labels =c("Below the poverty level (<1)",
+                                            "Equal to the poverty level (1)", 
+                                            "Greater than the poverty level (>1)"))) %>%
+  dplyr::rename(id = seqn, gender = riagendr, age = ridageyr, 
+           race = ridreth3, education = dmdeduc2,
+           maritalstatus = dmdmartz, ratio_poverty = indfmpir) %>%
+  dplyr::select(id, gender, age, race, education, maritalstatus, ratio_poverty)
+
+P_HIQ2 <- P_HIQ %>%
+  dplyr::mutate(hiq011 = factor(hiq011, levels =  c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(hiq032a = factor(hiq032a, levels = c(1),
+                                 labels = c("Yes"))) %>%
+  dplyr::mutate(hiq032b = factor(hiq032b, levels = c(2),
+                                 labels = c("Yes"))) %>%
+  dplyr::mutate(hiq032c = factor(hiq032c, levels = c(3),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032d = factor(hiq032d, levels = c(4),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032e = factor(hiq032e, levels = c(5),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032h = factor(hiq032h, levels = c(8),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq032i = factor(hiq032i, levels = c(9),
+                                 labels =c("Yes"))) %>%
+  dplyr::mutate(hiq260 = factor(hiq260, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(hiq270 = factor(hiq270, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(hiq210 = factor(hiq210, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::rename(id = seqn, insurancebinary = hiq011, privateinsurance = hiq032a, 
+           medicare = hiq032b, medigap = hiq032c, medicaid = hiq032d, 
+           chip = hiq032e, statesponsored = hiq032h, othergovernment = hiq032i, 
+           havemedicare = hiq260, prescription_insurance = hiq270,
+           noinsuranceyear = hiq210) %>%
+  dplyr::select(id, insurancebinary, privateinsurance, medicare,
+                medigap, medicaid, chip, statesponsored, othergovernment,
+                havemedicare, prescription_insurance, noinsuranceyear)
+
+P_HUQ2 <- P_HUQ %>%
+  dplyr::mutate(huq011 = factor(huq010, levels =  c(1, 2, 3, 4, 5),
+                                labels =c("Excellent", "Very good",
+                                          "Good", "Fair",
+                                          "Poor"))) %>%
+  dplyr::mutate(hud062 = factor(hud062, levels =  c(1, 2, 3, 4),
+                                labels =c("anytime less than 12 months ago",
+                                          "1 year but less than 2 years ago",
+                                          "within 3 years but less than 5 years",
+                                          "within 5 years but less than 10 years"))) %>%
+  dplyr::mutate(huq010 = factor(huq010, levels = c(1, 2, 3, 4, 5), 
+                                labels = c("Excellent", "Very good", "Good",
+                                           "Fair", "Poor"))) %>%
+  dplyr::mutate(huq030 = factor(huq030, levels = c(1, 2, 3),
+                                labels = c("Yes", "There is no place",
+                                           "There is more than one place"))) %>%
+  dplyr::mutate(huq051 = factor(huq051, levels = c(0, 1, 2, 3, 4, 5, 6, 7, 8),
+                                labels =c("None", "1", "2 to 3", "4 to 5",
+                                          "6 to 7", "8 to 9", "10 to 12",
+                                          "13 to 15", "16 or more"))) %>%
+  dplyr::mutate(huq071 = factor(huq071, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::mutate(huq090 = factor(huq090, levels = c(1, 2),
+                                labels =c("Yes", "No"))) %>%
+  dplyr::rename(id = seqn, combinationdoctor = hud062, healthcondition = huq010, 
+           routinehealthcare = huq030, numberhealthcare = huq051, 
+           overnighthospital = huq071, mentalhealthvisit = huq090) %>%
+  dplyr::select(id, combinationdoctor, healthcondition, routinehealthcare,
+                numberhealthcare, overnighthospital, mentalhealthvisit)
+```
+The four data sets are then merged based on participant identifier into one data set.
+```{r eval = TRUE, message = FALSE}
+nhanes2017 <- Reduce(function(x, y) merge (x = x, y = y, all = TRUE, by = "id"), 
+                     list(P_MCQ2, P_DEMO2, P_HIQ2, P_HUQ2))
+```
+Summary views of the combined data set were reviewed.
+```{r eval = TRUE, message = FALSE}
+str(nhanes2017)
+#How many NA's for each variable?
+sapply(nhanes2017, function(x) sum(is.na(x)))
+```
+The asthma variable is binary and answers if the participant states they currently have asthma. Table 1 was created with this asthma variable and only included relevant variables to the aims.
+```{r eval = TRUE, message = FALSE}
+nhanes2017_dem <- nhanes2017 %>%
+  select(asthma, everasthma, asthmaattack, erasthma, gender, age, race, education,
+         maritalstatus, ratio_poverty, insurancebinary, privateinsurance, medicare,
+         medigap, medicaid, chip, statesponsored, othergovernment, havemedicare,
+         prescription_insurance, noinsuranceyear)
+
+nhanes2017_dem$asthma <- forcats::fct_explicit_na(nhanes2017_dem$asthma)
+table1 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
+  add_n() %>%
+  add_overall() %>%
+  add_stat_label() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
+  bold_labels
+```
+
+### Results
+Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
+
+In the first aim, we looked at asthma prevalence from 2017-March 2020 in the US.
+Asthma prevalence was defined as ever being told you have asthma and having an asthma attack in the past year. A new data frame was created for asthma prevalence, as well as to use moving forward.
+```{r eval = TRUE, message = FALSE}
+nhanes2017_prev <- nhanes2017 %>%
+  dplyr::select(everasthma, asthmaattack, gender, age, race, education, maritalstatus,
+         ratio_poverty, insurancebinary, privateinsurance, medicare, medigap, medicaid,
+         chip, statesponsored, othergovernment, havemedicare,
+         prescription_insurance, noinsuranceyear, erasthma, combinationdoctor,
+         healthcondition, routinehealthcare,numberhealthcare, overnighthospital,
+         mentalhealthvisit) %>%
+  dplyr::filter(everasthma == "Yes") %>%
+  dplyr::filter(asthmaattack == "Yes")
+nhanes2017_prev = data.frame(nhanes2017_prev)
+```
+Asthma prevalence was calculated only for this cohort. As asthma prevalence is defined as everasthma = Yes & asthmaattack = Yes, we can use one variable to determine the total number of those with asthma. 
+```{r eval = TRUE, message = FALSE}
+table(nhanes2017_prev$everasthma) #636 participants with asthma
+str(nhanes2017) #15560 total number of participants
+#(636/15560)*100 = 4.087404% asthma prevalence
+
+#make new category for percentages???
+#nhanes2017_prev$indfmpir[P_DEMO$indfmpir < 1] <- "Below the poverty level (<1)" <- 1
+```
+To get an overall summary of the characteristics and social determinants of health in asthma prevalence, Table 2 was created.
+```{r eval = TRUE, message = FALSE}
+table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
+  add_n() %>%
+  add_overall() %>%
+  add_stat_label() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_caption("**Table 2. Decriptive Characteristics for Asthma Prevalence**") %>%
+  bold_labels
+```
+Variables considered for analysis were assessed for variability and missingness.
+```{r eval = TRUE, message = FALSE}
+#Assess missingness
+sapply(nhanes2017_prev, function(x) sum(is.na(x)))
+table(nhanes2017_prev$combinationdoctor)
+table(nhanes2017_prev$ratio_poverty)
+table(nhanes2017_prev$race)
+table(nhanes2017_prev$gender)
+table(nhanes2017_prev$age)
+table(nhanes2017_prev$insurancebinary)
+table(nhanes2017_prev$maritalstatus)
+table(nhanes2017_prev$education)
+table(nhanes2017_prev$noinsuranceyear)
+
+boxplot(nhanes2017_prev$race, ylab = "race")
+outliers <- boxplot(nhanes2017_prev$race, plot = FALSE)$out
+boxplot(nhanes2017_prev$gender, ylab = "gender")
+boxplot(nhanes2017_prev$race, ylab = "age")
+boxplot(nhanes2017_prev$insurancebinary, ylab = "insurancebinary")
+boxplot(nhanes2017_prev$maritalstatus, ylab = "maritalstatus")
+boxplot(nhanes2017_prev$education, ylab = "education")
+print(outliers)
+nhanes2017_prev[which(nhanes2017_prev$race %in% outliers), ]
+```
+Ratio to poverty, combinationdoctor, and the children category in age was not added due to there being no/low numbers based on category, so a new data set was created to account for this. Children was removed from age due to low numbers.
+```{r eval = TRUE, message = FALSE}
+nhanes2017_a <- subset(nhanes2017_prev, age != "Children (0-17 years)")
+                
+nhanes2017_prev_sub <- nhanes2017_a %>%
+  dplyr::select(everasthma, asthmaattack, gender, age, race, education,
+                maritalstatus, insurancebinary, prescription_insurance,
+                noinsuranceyear, erasthma, healthcondition, routinehealthcare,
+                numberhealthcare, overnighthospital, mentalhealthvisit) %>%
+  dplyr::filter(everasthma == "Yes") %>%
+  dplyr::filter(asthmaattack == "Yes")
+nhanes2017_prev_sub = data.frame(nhanes2017_prev_sub)
+
+#Assess missingness
+sapply(nhanes2017_prev_sub, function(x) sum(is.na(x)))
+```
+Age, race, insurance status, and asthma-related ER visits distribution for asthma prevalence were plotted below.
+```{r eval = TRUE, message = FALSE}
+p1 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = age)) +
+                geom_bar() +
+                ggtitle(paste("Asthma Patients Age Distribution")) +
+                theme(text = element_text(family = "Palatino"),
+                plot.title = element_text(hjust = 0, face="bold", size=20))
+p2 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = race)) +
+                geom_bar() +
+                labs(title = "Asthma Patients Race Distribution",
+                x = "Race", y = "Count") +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                plot.title = element_text(hjust = 0, face="bold", size=20)) 
+p3 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = insurancebinary)) +
+                geom_bar() +
+                labs(title = "Asthma Patients Insurance Status",
+                x = "insurancebinary", y = "Count") +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                plot.title = element_text(hjust = 0, face="bold", size=20))
+p4 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = erasthma)) +
+                geom_bar() +
+                labs(title = "Asthma-related ER Visits",
+                x = "erasthma", y = "Count") +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                plot.title = element_text(hjust = 0, face="bold", size=20))
+```
+```
+In the second aim, we looked at asthma-related emergency room visits in those with asthma (asthma prevalence group) from 2017-March 2020 in the US by using a multivariate linear regression model was created to look at emergency room visits.
+```{r eval = TRUE, message = FALSE}
+fit_glm1 <- glm(data = nhanes2017_prev_sub, erasthma ~ race + gender
+                 + age + insurancebinary + maritalstatus + education,
+                family = binomial())
+summary(fit_glm1)
+anova(fit_glm1)
+```
+Regression model table created for Aim 2. 
+```{r eval = TRUE, message = FALSE}
+tbl_regression(fit_glm1, exponentiate = TRUE, 
+  pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_caption("Table 3. Multivariate Model: Asthma-related ER Visits")
+```
+In the third aim, we looked at healthcare provider visits and emergency room visits in those with asthma (asthma prevalence group) from 2017-March 2020 in the US by using a multivariate linear regression model.
+```{r eval = TRUE, message = FALSE}
+fit_glm2 <- glm(data = nhanes2017_prev, erasthma ~ numberhealthcare + routinehealthcare
+                + overnighthospital + mentalhealthvisit + race + gender
+                + age + maritalstatus + education + insurancebinary,
+                family = binomial())
+                  
+summary(fit_glm2)
+anova(fit_glm2)
+```
+Regression model table created for Aim 3.
+```{r setup, include = FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+tbl_regression(fit_glm2, exponentiate = TRUE, 
+  pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
+  bold_p(t = 0.10) %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_caption("Table 4. Multivariate Model: Healthcare Provider
+  Visits and Asthma-related ER Visits")
+```
+### Conclusions
+The point prevalence of asthma in the total cohort population from 2017-March 2020 is 4.1%. Asthma-related emergency room visits (in 12 months) is significantly associated with being Non-Hispanic Black (p-value = 0.038, 95% CI 0.12-0.91) and being a college graduate or above (p-value = 0.009, 95% CI 1.49-15.7). Healthcare provider visits and asthma-related emergency room visits (in 12 months) is significantly associated with being Non-Hispanic Black (p-value = 0.040, 95% CI 0.11-0.92), being a college graduate or above (p-value = 0.039, 95% CI 1.07-13.1), and not going to a mental health visit in 12 months (p-value = 0.006, 95% CI 1.25-3.90). There is no significant association between the number of healthcare provider visits in 12 months and asthma-related emergency room visits.
+Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such as the number of chlidren with asthma. Aditionally, since the data was collected in a cross-sectional design, comparisons of different variables was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
+
+
+### References
+1. Centers for Disease Control and Prevention. (2018, May 18). Asthma - table -1 - lifetime asthma prevalence percents by age, NHIS, 2016. Centers for Disease Control and Prevention. Retrieved November 2, 2021, from https://www.cdc.gov/asthma/nhis/2016/table2-1.htm. 
+
+2. Nunes, C., Pereira, A. M., &amp; Morais-Almeida, M. (2017). Asthma costs and Social Impact. Asthma Research and Practice, 3(1). https://doi.org/10.1186/s40733-016-0029-3 
