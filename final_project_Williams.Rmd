@@ -39,9 +39,12 @@ suppressMessages(library(dplyr)) #data cleaning
 suppressMessages(library(ggplot2)) #plots
 #remotes::install_github("ddsjoberg/gtsummary")
 suppressMessages(library(gtsummary)) #regression model tables
+<<<<<<< HEAD
 suppressMessages(library(sjPlot)) #forest plot
 suppressMessages(library(sjlabelled)) #forest plot
 suppressMessages(library(sjmisc)) #forest plot
+=======
+>>>>>>> b2a6cb2a099dc5cdc3fd0c76e43da66ab61eb57c
 ```  
 The raw data will be imported per NHANES questionnaire corresponding to 2017-March 2020. The raw data and codebook was downloaded from https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2017-2020.
 ```{r eval = TRUE, message = FALSE}
