@@ -39,12 +39,9 @@ suppressMessages(library(dplyr)) #data cleaning
 suppressMessages(library(ggplot2)) #plots
 #remotes::install_github("ddsjoberg/gtsummary")
 suppressMessages(library(gtsummary)) #regression model tables
-<<<<<<< HEAD
 suppressMessages(library(sjPlot)) #forest plot
 suppressMessages(library(sjlabelled)) #forest plot
 suppressMessages(library(sjmisc)) #forest plot
-=======
->>>>>>> b2a6cb2a099dc5cdc3fd0c76e43da66ab61eb57c
 ```  
 The raw data will be imported per NHANES questionnaire corresponding to 2017-March 2020. The raw data and codebook was downloaded from https://wwwn.cdc.gov/nchs/nhanes/search/datapage.aspx?Component=Questionnaire&Cycle=2017-2020.
 ```{r eval = TRUE, message = FALSE}
@@ -104,8 +101,7 @@ P_MCQ2 <- P_MCQ %>%
                 everliver, liver, cancer, losingweight, exercise, reducesalt,
                 reducefat)
 
-# Establish categorical variable from numeric variable indfmpir (ratio to poverty)
-# and label as number for data cleaning, same with ridageyr (age) variable
+# Create categorical variable from numeric variable indfmpir (ratio to poverty) and label as number for data cleaning, same with ridageyr (age) variable
 P_DEMO$indfmpir <- ifelse(P_DEMO$indfmpir < 0.99, "1", 
                           ifelse(P_DEMO$indfmpir == 1, "2", 
                           ifelse(P_DEMO$indfmpir > 1 & P_DEMO$indfmpir < 5, "3", "4")))
@@ -141,7 +137,7 @@ P_DEMO2 <- P_DEMO %>%
   dplyr::mutate(ridageyr = factor(ridageyr,
                                      levels = c(1, 2, 3, 4, 5, 6),
                                      labels = c("Children (0-17 years)",
-                                                "Adults (17-25 years)",
+                                                "Adults (18-25 years)",
                                                 "Adults (26-38 years)",
                                                 "Adults (39-50 years)",
                                                 "Adults (51-65 years)",
@@ -299,16 +295,14 @@ table(nhanes2017_prev$education)
 table(nhanes2017_prev$noinsuranceyear)
 
 boxplot(nhanes2017_prev$race, ylab = "race")
-boxplot(nhanes2017_prev$gender, ylab = "gender")
 boxplot(nhanes2017_prev$race, ylab = "age")
 boxplot(nhanes2017_prev$maritalstatus, ylab = "maritalstatus")
 boxplot(nhanes2017_prev$education, ylab = "education")
 ```
-Combinationdoctor, medicare, medigap, medicaid, chip, statesponsored, othergovernment, havemedicare, and in age and ratio_poverty, a category was removed due to there being no/low numbers (too much missing data) based on category, so a new data set was created to account for this. 
+Combinationdoctor, medicare, medigap, medicaid, chip, statesponsored, othergovernment, havemedicare, and in ratio_poverty, a category was removed due to there being no/low numbers (too much missing data) based on category, so a new data set was created to account for this. 
 ```{r eval = TRUE, message = FALSE}
-nhanes2017_a <- subset(nhanes2017_prev, age != "Children (0-17 years)") #remove category from variable
-nhanes2017_a <- subset(nhanes2017_prev, ratio_poverty != "Equal to the poverty level (1)") #remove category from variable
-nhanes2017_prev_sub <- nhanes2017_a %>%
+nhanes2017_prev_sub <- nhanes2017_prev %>%
+  subset(nhanes2017_prev$ratio_poverty != "Equal to the poverty level (1)", drop = TRUE) %>% #remove category from variable 
   dplyr::select(everasthma, asthmaattack, gender, age, race, education,
                 maritalstatus, ratio_poverty, insurancebinary, prescription_insurance,
                 noinsuranceyear, erasthma, healthcondition, routinehealthcare,
@@ -351,7 +345,6 @@ p3
 p4 <- ggplot2::ggplot(data = nhanes2017_prev_sub, aes(x = numberhealthcare,
                 fill = gender)) +
                 geom_histogram(stat = "count") +
-                scale_fill_brewer(palette="Dark2") +
                 labs(title = "Number of Healthcare Provider Visits in
                      Asthma Patients by Gender",
                 x = "Number of Healthcare Visits in Past 12 months") +
@@ -406,7 +399,6 @@ coef(fit_glm2)
 ```
 Regression model table created for Aim 3.
 ```{r setup, include = FALSE} 
-knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 Table4 <- tbl_regression(fit_glm2,
                          exponentiate = TRUE, 
                          pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
@@ -426,18 +418,20 @@ forestplot2 <- plot_model(fit_glm2,
                           sort.est = TRUE,
                           show.values = TRUE,
                           value.offset = .4,
-                          value.size = 4,
-                          line.size = 1.5,
+                          value.size = 3,
+                          line.size = 1,
                           title = "Healthcare Provider Visits and Asthma-related
-                          ER Visits")
+                          ER Visits",
+                          wrap.title = 50)
 forestplot2
 ```
 ### Conclusions
-The point prevalence of asthma in the total cohort population from 2017-March 2020 is 4.1%. Asthma-related emergency room visits (in 12 months) is significantly associated with being Non-Hispanic Black (p-value = 0.038, 95% CI 0.12-0.91) and being a college graduate or above (p-value = 0.009, 95% CI 1.49-15.7). Healthcare provider visits and asthma-related emergency room visits (in 12 months) is significantly associated with being Non-Hispanic Black (p-value = 0.040, 95% CI 0.11-0.92), being a college graduate or above (p-value = 0.039, 95% CI 1.07-13.1), and not going to a mental health visit in 12 months (p-value = 0.006, 95% CI 1.25-3.90). There is no significant association between the number of healthcare provider visits in 12 months and asthma-related emergency room visits.
+The point prevalence of asthma in the total cohort population from 2017-March 2020 is 4.1%. Asthma-related emergency room visits (in 12 months) is significantly associated with being a college graduate or above (OR = 5.52, p-value = 0.016, 95% CI 1.41-23.2). Healthcare provider visits and asthma-related emergency room visits (in 12 months) is significantly associated with being a college graduate or above (OR = 3.58, p-value = 0.042, 95% CI 1.05-12.4) and not going to a mental health visit in 12 months (OR = 2.26, p-value = 0.003, 95% CI 1.31-3.92). There was no significant association with being Non-Hispanic Black (OR = 0.40, p-value = 0.073, 95% CI 0.14-1.06). There is no significant association between the number of healthcare provider visits in 12 months and asthma-related emergency room visits.
+
 Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such as the number of children with asthma and ratio to poverty. Additionally, since the data was collected in a cross-sectional design, comparisons of variables across time for the same participant was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
 
 
 ### References
 1. Centers for Disease Control and Prevention. (2018, May 18). Asthma - table -1 - lifetime asthma prevalence percents by age, NHIS, 2016. Centers for Disease Control and Prevention. Retrieved November 2, 2021, from https://www.cdc.gov/asthma/nhis/2016/table2-1.htm. 
 
-2. Nunes, C., Pereira, A. M., &amp; Morais-Almeida, M. (2017). Asthma costs and Social Impact. Asthma Research and Practice, 3(1). https://doi.org/10.1186/s40733-016-0029-3 
+2. Nunes, C., Pereira, A. M., &amp; Morais-Almeida, M. (2017). Asthma costs and Social Impact. Asthma Research and Practice, 3(1). https://doi.org/10.1186/s40733-016-0029-3
