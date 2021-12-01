@@ -426,18 +426,17 @@ forestplot2 <- plot_model(fit_glm2,
                           value.size = 3,
                           line.size = 1,
                           title = "Healthcare Provider Visits and Asthma-related
-                          ER Visits",
-                          wrap.title = 50)
+                          ER Visits")
 forestplot2
 ```
 
-```{r}
+
 ### Conclusions
-```
+
 
 The point prevalence of asthma in the total cohort population from 2017-March 2020 is 4.1%. Asthma-related emergency room visits (in 12 months) is significantly associated with being a college graduate or above (OR = 5.52, p-value = 0.016, 95% CI 1.41-23.2). Healthcare provider visits and asthma-related emergency room visits (in 12 months) is significantly associated with being a college graduate or above (OR = 3.58, p-value = 0.042, 95% CI 1.05-12.4) and not going to a mental health visit in 12 months (OR = 2.26, p-value = 0.003, 95% CI 1.31-3.92). There was no significant association with being Non-Hispanic Black (OR = 0.40, p-value = 0.073, 95% CI 0.14-1.06). There is no significant association between the number of healthcare provider visits in 12 months and asthma-related emergency room visits.
 
-Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such as the number of children with asthma and ratio to poverty. Additionally, since the data was collected in a cross-sectional design, comparisons of variables across time for the same participant was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
+Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such ratio to poverty. Additionally, since the data was collected in a cross-sectional design, comparisons of variables across time for the same participant was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
 
 
 ### References
