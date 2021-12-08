@@ -239,7 +239,7 @@ table1 <- tbl_summary(nhanes2017_dem, by = asthma, missing = "no") %>%
   add_overall() %>%
   add_stat_label() %>%
   modify_header(label = "**Variable**") %>%
-  modify_caption("**Table 1. Decriptive Characteristics by Asthma Status**") %>%
+  modify_caption("**Table 1. Descriptive Characteristics by Asthma Status**") %>%
   bold_labels
 table1
 ```
@@ -273,7 +273,7 @@ table2 <- tbl_summary(nhanes2017_prev, by = everasthma, missing = "no") %>%
   add_overall() %>%
   add_stat_label() %>%
   modify_header(label = "**Variable**") %>%
-  modify_caption("**Table 2. Decriptive Characteristics for Asthma Prevalence**") %>%
+  modify_caption("**Table 2. Descriptive Characteristics for Asthma Prevalence**") %>%
   bold_labels
 table2
 ```
@@ -368,7 +368,7 @@ Table3 <- tbl_regression(fit_glm1,
                          bold_p(t = 0.10) %>%
                          bold_labels() %>%
                          italicize_levels() %>%
-                         modify_caption("Table 3. Multivariate Model:
+                         modify_caption("Table 3. Multivariate Regression Model:
                          Asthma-related ER Visits")
  Table3 
 ```
@@ -382,7 +382,7 @@ forestplot1 <- plot_model(fit_glm1,
                show.values = TRUE,
                value.offset = .3,
                show.p = TRUE,
-               title = "Asthma-related ER Visits")
+               title = "Asthma-related ER Visits- Multivariate Regression Model")
 forestplot1
 ```
 
@@ -407,7 +407,7 @@ Table4 <- tbl_regression(fit_glm2,
                          bold_p(t = 0.10) %>%
                          bold_labels() %>%
                          italicize_levels() %>%
-                         modify_caption("Table 4. Multivariate Model:
+                         modify_caption("Table 4. Multivariate Regression Model:
                          Healthcare Provider Visits and Asthma-related
                          ER Visits")
 Table4
@@ -424,7 +424,7 @@ forestplot2 <- plot_model(fit_glm2,
                           value.size = 3,
                           line.size = 1,
                           title = "Healthcare Provider Visits and Asthma-related
-                          ER Visits")
+                          ER Visits- Multivaritate Regression Model")
 forestplot2
 ```
 
