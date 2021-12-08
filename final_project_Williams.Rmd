@@ -17,7 +17,7 @@ output:
 
 ***
 ### Overview
-This project aims to distinguish some relationships of asthma and healthcare provider visits and asthma-related emergency room visits in the US from 2017-March 2020 by using data from the NHANES. The goals of this study will be attained through the aims: 1) determine asthma prevalence for 2017-March 2020, 2) determine the rate of asthma-related emergency visits and the effects of social determinants of health, and 3) determine the relationship between healthcare provider visits and asthma-related emergency room visits, and the effects of social determinants of health.
+This project aims to distinguish some relationships of asthma and healthcare provider visits and asthma-related emergency room visits in the US from 2017-March 2020 by using data from the NHANES. The goals of this study will be attained through the aims: 1) determine asthma prevalence for 2017-March 2020, 2) determine the rate of asthma-related emergency room visits and the effects of social determinants of health, and 3) determine the relationship between healthcare provider visits and asthma-related emergency room visits, and the effects of social determinants of health.
 
 The three faculty that were consulted about this project are: Mary Regina Boland, MA, MPhil, Ph.D., FAMIA, Assistant Professor of Informatics in Biostatistics and Epidemiology, Department of Biostatistics, Epidemiology & Informatics, John Holmes, PhD, FACE, FACMI, Professor of Medical Informatics in Epidemiology, Department of Biostatistics, Epidemiology & Informatics, and Blanca E. Himes, PhD, Department: Biostatistics and Epidemiology. 
 
@@ -245,8 +245,6 @@ table1
 ```
 
 ### Results
-Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
-
 In the first aim, we looked at asthma prevalence from 2017-March 2020 in the US.
 Asthma prevalence was defined as ever being told you have asthma and having an asthma attack in the past year. A new data frame was created for asthma prevalence, as well as to use moving forward.
 ```{r eval = TRUE, message = FALSE}
@@ -402,7 +400,7 @@ coef(fit_glm2)
 ```
 
 Regression model table created for Aim 3.
-```{r setup, include = FALSE} 
+```{r eval = TRUE, message = FALSE} 
 Table4 <- tbl_regression(fit_glm2,
                          exponentiate = TRUE, 
                          pvalue_fun = ~style_pvalue(.x, digits = 2)) %>%
@@ -432,8 +430,6 @@ forestplot2
 
 
 ### Conclusions
-
-
 The point prevalence of asthma in the total cohort population from 2017-March 2020 is 4.1%. Asthma-related emergency room visits (in 12 months) is significantly associated with being a college graduate or above (OR = 5.52, p-value = 0.016, 95% CI 1.41-23.2). Healthcare provider visits and asthma-related emergency room visits (in 12 months) is significantly associated with being a college graduate or above (OR = 3.58, p-value = 0.042, 95% CI 1.05-12.4) and not going to a mental health visit in 12 months (OR = 2.26, p-value = 0.003, 95% CI 1.31-3.92). There was no significant association with being Non-Hispanic Black (OR = 0.40, p-value = 0.073, 95% CI 0.14-1.06). There is no significant association between the number of healthcare provider visits in 12 months and asthma-related emergency room visits.
 
 Several relevant variables were excluded in this report, as one limitation is the number of missing data, and lack of comparable groups within variables such ratio to poverty. Additionally, since the data was collected in a cross-sectional design, comparisons of variables across time for the same participant was not possible. Future studies should include longitudinal data, to properly compare risk factors given time. This report also did not account for other health conditions and/or lifestyle choices that can be contributory to asthma-related flares such as COPD and cigarette smoking, so future studies should examine this. Lastly, this report was not weighted, so further analysis should be done to make it generalizable to the US population.
